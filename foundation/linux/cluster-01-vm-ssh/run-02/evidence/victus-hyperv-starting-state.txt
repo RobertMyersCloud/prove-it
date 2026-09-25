@@ -1,0 +1,6 @@
+
+Name            State CPUUsage MemoryAssigned Uptime           Status            
+----            ----- -------- -------------- ------           ------            
+ubuntu-lab-01 Running        0      627048448 01:12:12.2850000 Operating normally
+
+

@@ -1,0 +1,10 @@
+
+
+VMName             : prove-linux-01
+Path               : C:\ProgramData\Microsoft\Windows\Virtual Hard Disks\prove-linux-01_6B9A8FF0-D05C-4577-A76B-457CC3E6968D.avhdx
+ControllerType     : SCSI
+ControllerNumber   : 0
+ControllerLocation : 0
+
+
+
