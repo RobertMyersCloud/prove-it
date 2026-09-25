@@ -6,5 +6,6 @@
 
 |---|---|---|
 
-| Cluster 01 — VM + SSH | Foundation | ACTIVE — Runs 1/2 complete |
+| Cluster 01 — VM + SSH | Foundation | PROVEN |
+
 

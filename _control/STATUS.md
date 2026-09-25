@@ -14,7 +14,7 @@
 
 |---|---|---:|---:|---:|---|
 
-| 01 | Build VM, SSH shell, first commit | DONE | DONE | OPEN | ACTIVE |
+| 01 | Build VM, SSH shell, first commit | DONE | DONE | DONE | PROVEN |
 
 | 02 | Filesystem, permissions, users, SUID, LVM | OPEN | OPEN | OPEN | QUEUED |
 
@@ -86,4 +86,5 @@
 * Offense: LOCKED
 * Defense: LOCKED
 * Forensics: LOCKED
+
 
