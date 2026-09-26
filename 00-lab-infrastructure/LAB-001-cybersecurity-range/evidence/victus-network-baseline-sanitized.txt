@@ -1,0 +1,166 @@
+=== VICTUS NETWORK BASELINE ===
+Captured: 2026-09-26 09:44:47
+
+=== HOSTNAME ===
+DESKTOP-50S5EA3
+
+=== NETWORK ADAPTERS ===
+
+Name                       InterfaceDescription                            ifIndex Status       MacAddress        LinkSpeed
+----                       --------------------                            ------- ------       ----------        ---------
+Ethernet 2                 Realtek Gaming GbE Family Controller                 23 Up           [REDACTED-MAC]    1 Gbps
+vEthernet (Default Switch) Hyper-V Virtual Ethernet Adapter                     43 Up           [REDACTED-MAC]   10 Gbps
+Wi-Fi 5                    Realtek 8852BE-VT Wireless LAN WiFi 6 PCI-E NIC      14 Not Present                        0 bps
+Wi-Fi 2                    Realtek 8852BE-VT Wireless LAN WiFi 6 PCI-E NIC      11 Not Present                        0 bps
+Wi-Fi                      Realtek 8852BE-VT Wireless LAN WiFi 6 PCI-E NIC       9 Up           [REDACTED-MAC]  1.2 Gbps
+Ethernet                   Realtek USB GbE Family Controller                     8 Disconnected [REDACTED-MAC]     0 bps
+
+
+
+
+=== IP CONFIGURATION ===
+
+
+InterfaceAlias       : Ethernet 2
+InterfaceIndex       : 23
+InterfaceDescription : Realtek Gaming GbE Family Controller
+NetProfile.Name      : Network
+IPv4Address          : 10.10.20.102
+IPv6DefaultGateway   : 
+IPv4DefaultGateway   : 10.10.20.1
+DNSServer            : 10.10.20.1
+
+InterfaceAlias       : vEthernet (Default Switch)
+InterfaceIndex       : 43
+InterfaceDescription : Hyper-V Virtual Ethernet Adapter
+IPv4Address          : 172.31.64.1
+IPv6DefaultGateway   : 
+IPv4DefaultGateway   : 
+DNSServer            : fec0:0:0:ffff::1
+                       fec0:0:0:ffff::2
+                       fec0:0:0:ffff::3
+
+InterfaceAlias       : Wi-Fi
+InterfaceIndex       : 9
+InterfaceDescription : Realtek 8852BE-VT Wireless LAN WiFi 6 PCI-E NIC
+NetProfile.Name      : [REDACTED-SSID]
+IPv4Address          : 192.168.1.18
+IPv6DefaultGateway   : 
+IPv4DefaultGateway   : 192.168.1.1
+DNSServer            : 1.1.1.1
+                       1.0.0.1
+
+InterfaceAlias       : Ethernet
+InterfaceIndex       : 8
+InterfaceDescription : Realtek USB GbE Family Controller
+NetAdapter.Status    : Disconnected
+
+
+
+
+
+=== IPV4 ROUTES ===
+
+ifIndex DestinationPrefix  NextHop     RouteMetric ifMetric PolicyStore
+------- -----------------  -------     ----------- -------- -----------
+23      0.0.0.0/0          10.10.20.1            0 25       ActiveStore
+9       0.0.0.0/0          192.168.1.1           0 30       ActiveStore
+23      10.10.20.0/24      0.0.0.0             256 25       ActiveStore
+23      10.10.20.102/32    0.0.0.0             256 25       ActiveStore
+23      10.10.20.255/32    0.0.0.0             256 25       ActiveStore
+1       127.0.0.0/8        0.0.0.0             256 75       ActiveStore
+1       127.0.0.1/32       0.0.0.0             256 75       ActiveStore
+1       127.255.255.255/32 0.0.0.0             256 75       ActiveStore
+43      172.31.64.0/20     0.0.0.0             256 15       ActiveStore
+43      172.31.64.1/32     0.0.0.0             256 15       ActiveStore
+43      172.31.79.255/32   0.0.0.0             256 15       ActiveStore
+9       192.168.1.0/24     0.0.0.0             256 30       ActiveStore
+9       192.168.1.18/32    0.0.0.0             256 30       ActiveStore
+9       192.168.1.255/32   0.0.0.0             256 30       ActiveStore
+3       224.0.0.0/4        0.0.0.0             256 25       ActiveStore
+10      224.0.0.0/4        0.0.0.0             256 25       ActiveStore
+43      224.0.0.0/4        0.0.0.0             256 15       ActiveStore
+9       224.0.0.0/4        0.0.0.0             256 30       ActiveStore
+1       224.0.0.0/4        0.0.0.0             256 75       ActiveStore
+23      224.0.0.0/4        0.0.0.0             256 25       ActiveStore
+8       224.0.0.0/4        0.0.0.0             256 5        ActiveStore
+3       255.255.255.255/32 0.0.0.0             256 25       ActiveStore
+10      255.255.255.255/32 0.0.0.0             256 25       ActiveStore
+43      255.255.255.255/32 0.0.0.0             256 15       ActiveStore
+9       255.255.255.255/32 0.0.0.0             256 30       ActiveStore
+1       255.255.255.255/32 0.0.0.0             256 75       ActiveStore
+23      255.255.255.255/32 0.0.0.0             256 25       ActiveStore
+8       255.255.255.255/32 0.0.0.0             256 5        ActiveStore
+
+
+
+
+=== DNS ===
+
+InterfaceAlias              InterfaceIndex AddressFamily ServerAddresses   
+--------------              -------------- ------------- ---------------   
+Ethernet                                 8 IPv4          {}                
+vEthernet (Default Switch)              43 IPv4          {}                
+Ethernet 2                              23 IPv4          {10.10.20.1}      
+Wi-Fi 3                                  3 IPv4          {}                
+Wi-Fi 4                                 10 IPv4          {}                
+Wi-Fi                                    9 IPv4          {1.1.1.1, 1.0.0.1}
+Loopback Pseudo-Interface 1              1 IPv4          {}                
+
+
+
+
+=== IP FORWARDING ===
+
+InterfaceAlias              Forwarding
+--------------              ----------
+vEthernet (Default Switch)    Disabled
+Wi-Fi 4                       Disabled
+Wi-Fi 3                       Disabled
+Ethernet 2                    Disabled
+Wi-Fi                         Disabled
+Ethernet                      Disabled
+Loopback Pseudo-Interface 1   Disabled
+
+
+
+
+=== LAB CONNECTIVITY ===
+ER605 - 10.10.20.1
+
+Pinging 10.10.20.1 with 32 bytes of data:
+Reply from 10.10.20.1: bytes=32 time=1ms TTL=64
+Reply from 10.10.20.1: bytes=32 time=2ms TTL=64
+Reply from 10.10.20.1: bytes=32 time=2ms TTL=64
+Reply from 10.10.20.1: bytes=32 time=2ms TTL=64
+
+Ping statistics for 10.10.20.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 1ms, Maximum = 2ms, Average = 1ms
+YODA - 10.10.20.10
+
+Pinging 10.10.20.10 with 32 bytes of data:
+Reply from 10.10.20.10: bytes=32 time=1ms TTL=64
+Reply from 10.10.20.10: bytes=32 time=2ms TTL=64
+Reply from 10.10.20.10: bytes=32 time=2ms TTL=64
+Reply from 10.10.20.10: bytes=32 time=1ms TTL=64
+
+Ping statistics for 10.10.20.10:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 1ms, Maximum = 2ms, Average = 1ms
+
+=== INTERNET PATH SELECTION ===
+
+
+ComputerName     : google.com
+RemoteAddress    : 172.253.135.102
+RemotePort       : 443
+InterfaceAlias   : Wi-Fi
+SourceAddress    : 192.168.1.18
+TcpTestSucceeded : True
+
+
+
+
