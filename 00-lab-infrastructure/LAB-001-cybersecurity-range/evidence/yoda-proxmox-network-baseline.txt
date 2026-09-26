@@ -1,0 +1,78 @@
+=== YODA / PROXMOX NETWORK BASELINE ===
+Captured: 2026-09-26 10:17:15
+
+=== HOSTNAME ===
+yoda
+
+=== PROXMOX VERSION ===
+pve-manager/9.2.10/43df2e01f27a1a19 (running kernel: 7.0.14-12-pve)
+
+=== INTERFACES ===
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+nic0             UP             
+vmbr0            UP             10.10.20.10/24 fe80::9a90:96ff:feb6:7e86/64 
+tap100i0         UNKNOWN        
+
+=== ROUTING ===
+default via 10.10.20.1 dev vmbr0 proto kernel onlink 
+10.10.20.0/24 dev vmbr0 proto kernel scope link src 10.10.20.10 
+
+=== PROXMOX BRIDGE CONFIGURATION ===
+auto lo
+iface lo inet loopback
+iface nic0 inet manual
+auto vmbr0
+iface vmbr0 inet static
+
+=== BRIDGE MEMBERS ===
+2: nic0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 master vmbr0 state forwarding priority 32 cost 5 
+8: tap100i0: <BROADCAST,MULTICAST,PROMISC,UP,LOWER_UP> mtu 1500 master vmbr0 state forwarding priority 32 cost 2 
+
+=== VM 100 NETWORK CONFIGURATION ===
+cores: 2
+memory: 4096
+name: kali
+net0: virtio=[REDACTED-MAC],bridge=vmbr0
+
+=== LAB CONNECTIVITY: ER605 ===
+PING 10.10.20.1 (10.10.20.1) 56(84) bytes of data.
+64 bytes from 10.10.20.1: icmp_seq=1 ttl=64 time=1.27 ms
+64 bytes from 10.10.20.1: icmp_seq=2 ttl=64 time=0.760 ms
+64 bytes from 10.10.20.1: icmp_seq=3 ttl=64 time=0.788 ms
+64 bytes from 10.10.20.1: icmp_seq=4 ttl=64 time=0.761 ms
+
+--- 10.10.20.1 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3053ms
+rtt min/avg/max/mdev = 0.760/0.895/1.273/0.218 ms
+
+=== LAB CONNECTIVITY: ENVY ===
+PING 10.10.20.101 (10.10.20.101) 56(84) bytes of data.
+64 bytes from 10.10.20.101: icmp_seq=1 ttl=64 time=1.78 ms
+64 bytes from 10.10.20.101: icmp_seq=2 ttl=64 time=1.84 ms
+64 bytes from 10.10.20.101: icmp_seq=3 ttl=64 time=1.75 ms
+64 bytes from 10.10.20.101: icmp_seq=4 ttl=64 time=1.91 ms
+
+--- 10.10.20.101 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3006ms
+rtt min/avg/max/mdev = 1.753/1.820/1.909/0.059 ms
+
+=== LAB CONNECTIVITY: KALI ===
+PING 10.10.20.103 (10.10.20.103) 56(84) bytes of data.
+64 bytes from 10.10.20.103: icmp_seq=1 ttl=64 time=0.316 ms
+64 bytes from 10.10.20.103: icmp_seq=2 ttl=64 time=0.189 ms
+64 bytes from 10.10.20.103: icmp_seq=3 ttl=64 time=0.182 ms
+64 bytes from 10.10.20.103: icmp_seq=4 ttl=64 time=0.183 ms
+
+--- 10.10.20.103 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3068ms
+rtt min/avg/max/mdev = 0.182/0.217/0.316/0.056 ms
+
+=== PROXMOX BRIDGE CONFIGURATION - DETAIL ===
+auto vmbr0
+iface vmbr0 inet static
+	address 10.10.20.10/24
+	gateway 10.10.20.1
+	bridge-ports nic0
+	bridge-stp off
+	bridge-fd 0
+
