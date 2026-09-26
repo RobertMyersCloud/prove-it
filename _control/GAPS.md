@@ -1,23 +1,20 @@
-﻿# Gaps
+# Prove-It Gaps
 
+A gap is a weakness exposed while performing or explaining real work.
 
-
-A GAP is something the proving process shows I do not understand or cannot perform independently.
-
-
+A backlog item means proof still needs to be built. A gap means I attempted the capability and discovered my understanding or execution was not strong enough.
 
 ## Open Gaps
+None currently recorded.
 
-
-
-None yet.
-
-
+## Gap Format
+### GAP-XXX — Title
+**Discovered during:** Project where the gap appeared.  
+**Expected capability:** What I expected to understand or do.  
+**What exposed the gap:** Specific uncertainty, error, or inability.  
+**Learning target:** What needs reinforcement.  
+**Retest:** Evidence that will close the gap.  
+**Status:** OPEN / CLOSED
 
 ## Closed Gaps
-
-
-
-None yet.
-
-
+None currently recorded.

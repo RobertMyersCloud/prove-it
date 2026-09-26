@@ -1,240 +1,90 @@
-﻿# Prove-It — Project Instructions
+# Prove-It — Project Instructions
 
 ## Purpose
+This repository is my body of proof. Study notes, books, course material, walkthroughs, exam preparation, and raw learning belong elsewhere.
 
-This repo is my body of proof.
+This repository answers one question: **Can I actually do the work?**
 
-Studying happens somewhere else. SANS notes, CCNA study, Linux study, books, videos, walkthroughs, and raw learning do not belong here.
+Every published artifact must demonstrate a capability through work I performed, evidence I collected, analysis I can explain, and validation that supports the result.
 
-This repo answers one question:
+## Direction
+Immediate employment lanes:
+1. Financial Crime / Investigations
+2. Networking / Network Operations
+3. Security Operations / Cyber Investigation
 
-**Can I actually do the work?**
+Long-term progression: **Cyber Investigation → DFIR → Threat Hunting → Offensive Security → Red Team**
 
-Every proving session must leave something in this repo that did not exist when I started. If nothing gets committed, I studied. I did not prove anything.
+## Repository Architecture
+Proof is organized by capability:
+`00-lab-infrastructure`, `01-networking`, `02-network-security`, `03-linux`, `04-windows`, `05-security-foundations`, `06-security-operations`, `07-data-analysis`, `08-financial-crime`, `09-dfir`, `10-threat-hunting`, `11-offensive-security`, `12-cloud`, and `tools`.
 
----
+Directories are populated when evidence earns them.
 
-## No Skipped Floorboards
+## Proof Workflow
+**Identify capability → Perform work → Collect evidence → Analyze → Validate → Sanitize → Document → Publish**
 
-I am not skipping fundamentals to chase high-level cybersecurity work.
+Projects should demonstrate realistic job behavior: troubleshooting, investigation, analysis, configuration, validation, remediation, or reporting.
 
-If I hit something I do not understand, I pull the floorboards up and figure out what is underneath it.
+## Employer Alignment
+Before building a substantial artifact, ask: **What hiring claim will this prove?**
 
-The cybersecurity ladder is climbed in order:
-
-**Foundation → Offense → Defense → Forensics**
-
-Something being taught out of order does not change where it belongs.
-
-If SANS, CCNA, a book, a lab, or anything else teaches me an offensive concept while Foundation is still open, I learn it, record it in the backlog, and prove it when that rung opens.
-
-The goal is eventually to take an attack and walk it backward from the evidence all the way to the person sitting in the chair, explaining what happened and how I know.
-
----
-
-## The Three Runs
-
-A Foundation cluster is not PROVEN because I completed it once.
-
-### Run 1 — Guided
-
-I can use documentation, notes, instruction, search, or other learning resources.
-
-I operate the system myself.
-
-The goal is to understand what I am doing, what the commands or tools are doing, and why the result happened.
-
-### Run 2 — Coached
-
-I start from the objective instead of a walkthrough.
-
-I attempt the work myself first.
-
-If I get stuck, I troubleshoot before asking for help. Assistance is allowed, but I should need less of it than Run 1.
-
-The goal is to show that I am beginning to own the skill.
-
-### Run 3 — Solo
-
-I receive the objective and acceptance criteria only.
-
-No walkthrough.
-
-No copied commands.
-
-No step-by-step help.
-
-I build, troubleshoot, validate, and explain the result myself.
-
-If I cannot do that, the skill is not PROVEN yet.
-
----
-
-## Status
-
-Every proof item has a status.
-
-**QUEUED** — I have not started proving it.
-
-**ACTIVE** — I am currently working it.
-
-**THIN** — I have evidence or experience, but it is not enough to call the skill proven.
-
-**PROVEN** — The evidence and required runs demonstrate that I can perform and explain the skill.
-
-A GAP is different from a status.
-
-A **GAP** means the proving process exposed something I do not actually understand or cannot perform independently.
-
-The gap is recorded in `GAPS.md`, routed to a specific study block, learned outside the proving session, and then tested again.
-
----
-
-## Backlog vs. Gap
-
-`BACKLOG.md` is for knowledge or work I already have but have not properly captured or proven in this repo.
-
-`GAPS.md` is for weaknesses discovered while proving.
-
-Backlog means:
-
-> I have done or learned this before, but GitHub cannot prove it yet.
-
-Gap means:
-
-> I thought I understood this, but the proving process showed me that I do not understand it well enough yet.
-
----
+Each project identifies employer-relevant skills. Prefer work supporting at least one primary lane and, where practical, a second lane. Periodically compare the portfolio with current job requirements and add recurring requirements to the backlog.
 
 ## Evidence Standard
+A screenshot, README, or command alone is not proof.
 
-A screenshot alone is not proof.
+Strong proof connects: **Objective → Action → Machine-generated evidence → Analysis → Validation → Finding**
 
-A README alone is not proof.
+Evidence may include terminal output, configurations, logs, PCAPs, exported data, scripts, queries, screenshots, before/after state, troubleshooting evidence, diagrams, timelines, findings, and remediation validation.
 
-A command alone is not proof.
+## Evidence Handling and Privacy
+Raw evidence is reviewed before publication. Local raw-evidence directories are excluded from version control.
 
-Strong proof connects:
+Omit or sanitize information that does not contribute to the proof: passwords, private keys, tokens, secrets, unnecessary MAC addresses or SSIDs, serial numbers, account identifiers, unnecessary public IPs, and other sensitive identifiers.
 
-**Objective → Action → Machine-generated evidence → Explanation → Validation**
+Private RFC1918 addressing may remain when it materially explains the architecture. Review exact staged content before every public commit.
 
-Evidence can include:
+## Failure and Troubleshooting
+Failure can be useful evidence. When meaningful, document:
+**Expected → Observed → Investigated → Root Cause → Change → Validation**
 
-- terminal output
-- configuration files
-- logs
-- packet captures
-- command history where appropriate
-- screenshots
-- exported data
-- scripts
-- system state before and after a change
-- troubleshooting evidence
-- diagrams supported by actual configuration
-- written findings
+Do not manufacture failures for appearance.
 
-Every piece of evidence should exist for a reason.
+## Writing Standard
+Published work represents work I actually performed and understand. If I did not run, observe, test, analyze, or learn it, the artifact cannot claim that I did.
 
----
+Every technical claim published under my name should be something I can explain and defend in an interview.
 
-## Failure Is Evidence
+## Training and SANS Material
+Training is an input, not a public artifact. Do not publish proprietary books, copied labs, answer keys, exam questions, copyrighted training screenshots, proprietary VM images, or proprietary datasets.
 
-I do not hide mistakes just to make a lab look clean.
+When training teaches a useful capability: **Learn → Apply independently → Publish original proof → Integrate strong capabilities into flagships.**
 
-If something fails, I troubleshoot it.
+## Flagship Projects
+The body-of-proof repo demonstrates breadth; separate flagship repos demonstrate depth:
+- Enterprise Network Engineering & Troubleshooting
+- Applied Cybersecurity / GFACT Capstone
+- Financial Crime Investigation
+- GSEC Security Operations Capstone
+- Cyber-Enabled Financial Crime Investigation
+- Enterprise DFIR Investigation
 
-When the failure teaches something useful, the artifact should show:
+Create flagships when enough real work exists to justify them.
 
-**What I expected → What actually happened → What I checked → What I found → What I changed → How I proved the fix**
+## Gaps and Backlog
+`GAPS.md` records weaknesses exposed while performing or explaining work. `BACKLOG.md` tracks capabilities, projects, and employer requirements still needing strong proof.
 
-A clean result is useful.
-
-A documented troubleshooting process can be even more useful.
-
----
-
-## Writing Rule
-
-The writeups must sound like me and represent work I actually performed.
-
-Editing and drafting tools can be used to organize, clarify, shorten, and improve technical accuracy.
-
-Those tools cannot fabricate my experience.
-
-If I did not run it, see it, test it, or learn it, the writeup cannot claim that I did.
-
-I must understand every technical claim published under my name.
-
-The final artifact represents my actual work and my understanding.
-
----
-
-## Assistance by Run
-
-### Guided
-
-Full instruction and learning resources are allowed.
-
-I still operate the system and perform the work myself.
-
-### Coached
-
-I start from the objective and make a real attempt myself.
-
-If I get stuck, I troubleshoot first.
-
-Assistance is allowed after that, but the goal is to need less help than I did during the guided run.
-
-### Solo
-
-I receive the objective and acceptance criteria only.
-
-I perform the work, troubleshoot problems, validate the result, and collect the evidence independently.
-
-If I cannot complete the objective independently, the skill is not PROVEN yet.
-
----
-
-## Training Material
-
-SANS, certification courses, books, videos, and other training are inputs to this project, not artifacts themselves.
-
-I do not publish proprietary course material, exam questions, copied labs, answer keys, books, or copyrighted training content.
-
-When training teaches me something useful, I reproduce the skill independently in my own environment and capture my own evidence.
-
----
+## Status
+- **QUEUED** — planned, not started
+- **ACTIVE** — currently being built
+- **THIN** — some evidence exists; stronger proof needed
+- **PROVEN** — published evidence demonstrates the capability and I can explain it
 
 ## Lab Scope and Safety
+Offensive testing is only against systems I own or am explicitly authorized to test. Production and family systems are not targets. Scope must be known before testing begins.
 
-Offensive testing is performed only against systems I own or systems I have explicit authorization to test.
+## End State
+Build evidence that I can understand and troubleshoot systems/networks, secure them, detect suspicious behavior, investigate technical and financial evidence, reconstruct incidents, hunt adversaries, understand attacks from defensive and offensive perspectives, and communicate findings and business impact.
 
-Production and family systems are not targets.
-
-The lab boundary and target scope must be known before offensive testing begins.
-
-If there is uncertainty about scope, the test stops until scope is clear.
-
----
-
-## The End State
-
-This project starts with fundamentals, but fundamentals are not the finish line.
-
-I am building toward the ability to understand an event from every side:
-
-**How the system normally works.**
-
-**How it was attacked.**
-
-**What the defender could see.**
-
-**What evidence remained.**
-
-**How an investigator could reconstruct what happened.**
-
-No skipped steps.
-
-No hand-waving.
-
-Prove it.
+**Prove it.**
