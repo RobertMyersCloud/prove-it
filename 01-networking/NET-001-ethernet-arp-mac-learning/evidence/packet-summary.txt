@@ -1,0 +1,7 @@
+NET-001 — Sanitized Packet Summary
+Source: TShark extraction of frames 253-256 from the original local capture
+
+1	[ENVY-MAC]	[BROADCAST]	ARP			Who has 10.10.20.10? Tell 10.10.20.101
+2	[YODA-MAC]	[ENVY-MAC]	ARP			10.10.20.10 is at [YODA-MAC]
+3	[ENVY-MAC]	[YODA-MAC]	ICMP	10.10.20.101	10.10.20.10	Echo (ping) request  id=0x77dd, seq=1/256, ttl=64
+4	[YODA-MAC]	[ENVY-MAC]	ICMP	10.10.20.10	10.10.20.101	Echo (ping) reply    id=0x77dd, seq=1/256, ttl=64 (request in 3)
