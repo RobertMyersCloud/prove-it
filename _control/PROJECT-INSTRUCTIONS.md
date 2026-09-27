@@ -88,3 +88,15 @@ Offensive testing is only against systems I own or am explicitly authorized to t
 Build evidence that I can understand and troubleshoot systems/networks, secure them, detect suspicious behavior, investigate technical and financial evidence, reconstruct incidents, hunt adversaries, understand attacks from defensive and offensive perspectives, and communicate findings and business impact.
 
 **Prove it.**
+
+## Cumulative Disclosure Review
+
+Public-evidence review considers cumulative disclosure across the entire portfolio, not only the current artifact.
+
+An identifier redacted in one artifact must not be exposed in another artifact when the two can be correlated.
+
+Persistent infrastructure identifiers such as MAC addresses, SSIDs, serial numbers, public IP addresses, credentials, tokens, private keys, and unrelated packet-capture data are not published unless there is a specific documented reason.
+
+When an identifier is technically relevant, preserve the analytical relationship with stable role labels such as [ENVY-MAC], [YODA-MAC], or [ER605-MAC] rather than publishing the real value.
+
+Original unsanitized evidence remains local under evidence/raw/ and is excluded from version control.
