@@ -1,0 +1,4 @@
+NET-002 — UDP Open-Port Packet Summary
+Source: TShark extraction from original local capture (raw PCAP retained locally)
+
+1	10.10.20.101	46681	10.10.20.10	9090	17	18	46681 -> 9090 Len=10
