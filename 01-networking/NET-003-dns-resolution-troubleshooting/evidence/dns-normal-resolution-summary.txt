@@ -1,0 +1,13 @@
+NET-003 — Normal DNS Resolution Summary
+Source: TShark extraction from original local capture (raw PCAP retained locally)
+
+27		127.0.0.1	44308	127.0.0.53	53	0xdb91	False	1	example.com		
+28		10.10.20.101	49642	10.10.20.1	53	0x869d	False	1	example.com		
+29		192.168.1.3	35762	1.0.0.1	53	0xc3dd	False	1	example.com		
+30		10.10.20.1	53	10.10.20.101	49642	0x869d	True	1	example.com	172.66.147.243,104.20.23.154	
+31		127.0.0.53	53	127.0.0.1	44308	0xdb91	True	1	example.com	172.66.147.243,104.20.23.154	
+32		1.0.0.1	53	192.168.1.3	35762	0xc3dd	True	1	example.com	172.66.147.243,104.20.23.154	
+33		10.10.20.101	58563	10.10.20.1	53	0xffc7	False	28	example.com		
+34		192.168.1.3	36388	1.0.0.1	53	0xa816	False	28	example.com		
+35		10.10.20.1	53	10.10.20.101	58563	0xffc7	True	28	example.com		2606:4700:10::6814:179a,2606:4700:10::ac42:93f3
+36		1.0.0.1	53	192.168.1.3	36388	0xa816	True	28	example.com		2606:4700:10::ac42:93f3,2606:4700:10::6814:179a
