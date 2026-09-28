@@ -1,0 +1,104 @@
+NET-007 — VLAN Segmentation and Policy Enforcement Findings
+
+Objective:
+Create a second Layer-2 broadcast domain, validate inter-VLAN routing, and then enforce intentional isolation between the new VLAN and the existing lab network.
+
+Baseline:
+The existing lab LAN used VLAN 1 and subnet 10.10.20.0/24.
+The lab gateway was 10.10.20.1.
+Yoda remained on 10.10.20.10.
+ENVY initially used 10.10.20.101.
+
+The managed switch initially had 802.1Q disabled and all switch ports used PVID 1.
+
+VLAN 30 Creation:
+A new routed network was created on the ER605:
+
+VLAN ID: 30
+Subnet: 10.10.30.0/24
+Gateway: 10.10.30.1
+DHCP range: 10.10.30.100-10.10.30.199
+
+The existing VLAN 1 / 10.10.20.0/24 network was preserved.
+
+Switch Configuration:
+The switch uplink carried VLAN 30 as tagged traffic.
+The ENVY access port carried VLAN 30 as untagged traffic.
+The ENVY access-port PVID was changed from 1 to 30.
+
+VLAN 30 membership:
+Port 1: tagged VLAN 30 uplink
+Port 3: untagged VLAN 30 access port
+
+Port 3 PVID: 30
+
+DHCP Validation:
+After reconnecting the Ethernet interface, ENVY received:
+
+IPv4 address: 10.10.30.100/24
+Gateway: 10.10.30.1
+
+This demonstrated successful DHCP operation across the VLAN 30 path.
+
+Inter-VLAN Routing Test:
+Before applying an isolation policy, ENVY successfully reached Yoda at 10.10.20.10.
+
+ENVY route:
+10.10.20.10 via 10.10.30.1
+
+ICMP result:
+2 packets transmitted
+2 packets received
+0% packet loss
+
+The returned packets had TTL 63, consistent with traffic crossing a Layer-3 routing boundary.
+
+Layer-2 Neighbor Validation:
+ENVY did not maintain a direct neighbor entry for Yoda at 10.10.20.10.
+
+ENVY instead maintained a reachable Layer-2 neighbor for its local gateway at 10.10.30.1.
+
+This demonstrated that ENVY did not resolve Yoda directly at Layer 2. Traffic destined for 10.10.20.0/24 was forwarded to the VLAN 30 gateway for Layer-3 routing.
+
+Policy Enforcement:
+An ER605 IPv4 LAN-to-LAN access-control rule was created:
+
+Name: DENY_VLAN30_TO_LAB
+Policy: Block
+Service: ALL
+Direction: LAN->LAN
+Source Network: VLAN30
+Destination Network: LAN
+Effective Time: Any
+
+Post-Policy Validation:
+After the ACL was applied:
+
+ENVY -> 10.10.30.1:
+PASS
+2 packets transmitted
+2 packets received
+0% packet loss
+
+ENVY -> 10.10.20.10:
+BLOCKED
+2 packets transmitted
+0 packets received
+100% packet loss
+
+The route to 10.10.20.10 still existed through 10.10.30.1.
+
+Conclusion:
+The lab demonstrated three separate networking controls:
+
+1. VLAN segmentation created separate Layer-2 broadcast domains.
+2. The router provided Layer-3 communication between those networks before policy enforcement.
+3. A LAN-to-LAN ACL blocked VLAN 30 from reaching the existing lab network while preserving connectivity to the VLAN 30 gateway.
+
+The failure after ACL deployment was therefore not caused by a missing route or failed VLAN configuration. The forwarding path remained valid, while policy intentionally prevented inter-VLAN communication.
+
+Final State:
+Yoda remained on the existing 10.10.20.0/24 network.
+ENVY remained on VLAN 30 at 10.10.30.0/24.
+VLAN 30 remained operational.
+The VLAN30-to-LAN blocking policy remained enabled.
