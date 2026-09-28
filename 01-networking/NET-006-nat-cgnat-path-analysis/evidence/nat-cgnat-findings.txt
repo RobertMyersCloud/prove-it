@@ -1,0 +1,40 @@
+NET-006 — NAT and CGNAT Path Analysis Findings
+
+Observed inner path:
+Yoda: 10.10.20.10/24
+Yoda default gateway: 10.10.20.1
+Both traceroute methods identified 10.10.20.1 as the first responding hop.
+Subsequent traceroute hops did not respond and were not identified.
+
+Observed ER605 upstream boundary:
+ER605 WAN IPv4: 192.168.1.177/24
+ER605 upstream gateway: 192.168.1.1
+ER605 WAN MAC is redacted from public evidence.
+
+Observed AX55 boundary:
+AX55 LAN IPv4: 192.168.1.1/24
+AX55 WAN IPv4: 100.67.28.24/22
+AX55 upstream gateway: 100.67.28.1
+AX55 MAC is redacted from public evidence.
+
+CGNAT evidence:
+100.67.28.24 is inside 100.64.0.0/10 shared address space.
+The Internet-visible IPv4 differed from 100.67.28.24.
+The exact public IPv4 is retained locally and published only as [PUBLIC-IP].
+
+AX55 routing evidence:
+192.168.1.0/24 is connected on LAN.
+100.67.28.0/22 is connected on WAN.
+0.0.0.0/0 uses 100.67.28.1 through WAN.
+
+Security-control observation:
+Yoda is intentionally restricted from Internet access by lab policy.
+The control was not weakened for this experiment.
+ENVY was used for the legitimate Internet-side public-address comparison.
+
+Evidence limitation:
+No NAT/session table was available showing a live inside-to-translated port mapping.
+The artifact therefore distinguishes observed addressing/routing boundaries from packet-level NAT translation records.
+
+Conclusion:
+The AX55 holds a WAN address inside RFC6598 shared address space and presents a different IPv4 to the public Internet. This directly supports an upstream carrier-grade NAT condition.
