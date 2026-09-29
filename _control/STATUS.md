@@ -1,73 +1,88 @@
-# Prove-It Status
+﻿# Prove-It Status
 
 ## Current Sprint
-**8-Day GitHub Catch-Up**
 
-**Goal:** Convert existing Security+, Network+, GFACT/SEC275, CCNA, systems, and professional knowledge into employer-visible evidence.
+**Network & Systems Infrastructure Depth Sprint**
 
-### Primary Employment Lanes
-1. Financial Crime / Investigations
-2. Networking / Network Operations
-3. Security Operations / Cyber Investigation
+**Target date:** October 26, 2026
 
-### Long-Term Progression
-**Cyber Investigation → DFIR → Threat Hunting → Offensive Security → Red Team**
+**Goal:** Deepen networking and systems capability, strengthen employer-visible proof, and prepare the repository for the broad West DFW infrastructure job campaign.
+
+## Primary Employment Discipline
+
+**Network & Systems Infrastructure**
+
+Target roles include:
+
+- Network Administrator
+- Network Analyst
+- Network Engineer I
+- Systems Administrator
+- Systems Engineer
+- Infrastructure Analyst / Engineer
+- Systems / Network Administrator
+- Network Operations
+- Data Center IT / Infrastructure Operations
+- Network Security / Systems Security roles where the work remains infrastructure-heavy
+
+Security is treated as an integrated infrastructure competency, not a separate competing career identity.
 
 ## Completed Proof
+
 | ID | Artifact | Primary Skills | Status |
 |---|---|---|---|
 | LAB-001 | Isolated Cybersecurity Range Architecture & Trust Boundary | TCP/IP, switching, routing, firewall policy, Proxmox, evidence handling | PROVEN |
-| LEGACY-001 | Linux VM + SSH | Linux, virtualization, SSH | PROVEN |
+| LEGACY-001 | Linux VM + SSH | Linux, Hyper-V, virtualization, SSH, remote administration | PROVEN |
+| NET-001 | Ethernet, ARP & MAC Learning with Port Mirroring | Ethernet, ARP, MAC reasoning, ICMP, port mirroring, packet analysis | PROVEN |
+| NET-002 | TCP vs UDP Traffic Analysis | TCP lifecycle, sequence/ACK behavior, sockets, UDP, ICMP errors | PROVEN |
+| NET-003 | DNS Resolution and Troubleshooting | DNS, UDP/TCP 53, resolver paths, NXDOMAIN, timeout analysis | PROVEN |
+| NET-004 | HTTP/TLS Traffic Analysis | HTTPS/TLS, TCP/443, ClientHello, SNI, X.509, TLS troubleshooting | PROVEN |
+| NET-005 | Routing and Path Selection | Longest-prefix match, metrics, static routes, packet-path validation | PROVEN |
+| NET-006 | NAT and CGNAT Path Analysis | NAT/CGNAT, RFC1918/RFC6598, routing boundaries, traceroute limits | PROVEN |
+| NET-007 | VLAN Segmentation and Policy Enforcement | 802.1Q, PVIDs, DHCP, inter-VLAN routing, ACL isolation | PROVEN |
 
-## Active
-**NET-001 — Ethernet, ARP & MAC Learning**
+## Next Proof Block
 
-Goal: demonstrate same-subnet communication using ARP, Ethernet frames, MAC learning, host neighbor tables, switch behavior, and packet capture.
-
-## Catch-Up Queue
-| ID | Proof | Primary Lane | Status |
+| ID | Planned Proof | Purpose | Status |
 |---|---|---|---|
-| NET-001 | Ethernet, ARP & MAC Learning | Networking + Security | ACTIVE |
-| NET-002 | TCP/UDP Traffic Analysis | Networking + Security | QUEUED |
-| NET-003 | DNS Investigation | Networking + Security | QUEUED |
-| NET-004 | Routing Investigation | Networking | QUEUED |
-| NET-005 | NAT/PAT Investigation | Networking + Security | QUEUED |
-| NET-006 | ICMP & Traceroute Analysis | Networking | QUEUED |
-| NET-007 | Subnet Failure Investigation | Networking | QUEUED |
-| NET-008 | DHCP Investigation | Networking | QUEUED |
-| NSEC-001 | ACL / Firewall Enforcement | Network Security | QUEUED |
-| NSEC-002 | Network Segmentation | Network Security | QUEUED |
-| LIN-001 | Linux Security Baseline | Security + Systems | QUEUED |
-| LIN-002 | Linux Investigation | Security Operations | QUEUED |
-| WIN-001 | Windows Security Baseline | Security + Systems | QUEUED |
-| WIN-002 | Authentication Investigation | Security + Financial Crime | QUEUED |
-| CYB-001 | Vulnerability Assessment & Remediation | Security | QUEUED |
-| CYB-002 | System Hardening | Security | QUEUED |
-| SECOPS-001 | Log Investigation | Security Operations | QUEUED |
-| SECOPS-002 | Controlled Activity → Detection | Security Operations | QUEUED |
-| DATA-001 | Financial Dataset Analysis | Financial Crime | QUEUED |
-| FC-001 | Financial Crime Investigation | Financial Crime | QUEUED |
-| CFC-001 | Cyber-Enabled Financial Crime Mini-Case | All Three | QUEUED |
+| NET-008 | Protected Systems Enclave | Place a real service behind an explicit trust boundary and validate allowed/denied flows | QUEUED |
+| NET-009 | Layer-2 Fault Injection & Recovery | Troubleshoot a real VLAN/tagging/uplink fault on physical hardware | QUEUED |
+| NET-010 | Centralized Logging & Infrastructure Telemetry | Generate and collect infrastructure events; validate time and observability | QUEUED |
+| NET-011 | Secure Remote Management Under CGNAT | Solve a real remote-access constraint using supported technology | QUEUED |
+| NET-012 | Backup, Failure, Restore & Service Validation | Perform controlled recovery and validate system, network, and policy state | QUEUED |
 
-## Flagship Status
-| Flagship | Status |
-|---|---|
-| Enterprise Network Engineering & Troubleshooting | PLANNED |
-| GFACT Applied Cybersecurity Capstone | PLANNED |
-| Financial Crime Investigation | PLANNED |
-| GSEC Security Operations Capstone | FUTURE — build during SEC401/GSEC |
-| Cyber-Enabled Financial Crime Investigation | FUTURE |
-| Enterprise DFIR Investigation | FUTURE |
+Cisco-specific features that are not supported by the physical lab are practiced and documented separately in CCNA lab work rather than falsely attributed to TP-Link hardware.
 
 ## Current Lab Baseline
-- `10.10.20.0/24` lab documented
+
+- Household network: `192.168.1.0/24`
+- Lab network: `10.10.20.0/24`
 - ER605 trust boundary documented
 - TL-SG108E integrated and baselined
-- Yoda/Proxmox bridge documented
-- Kali contained inside lab
-- ENVY established as normal dual-homed management workstation; IPv4 forwarding disabled
-- Victus used as a temporary lab-connected workstation when required
-- raw-evidence exclusion and sanitization workflow established
+- Yoda / Proxmox bridge documented
+- Kali contained inside the lab
+- ENVY established as a dual-homed management workstation with IPv4 forwarding disabled
+- VLAN 30 / `10.10.30.0/24` implemented and policy-isolated
+- Raw-evidence exclusion and sanitization workflow established
+- Upstream CGNAT condition documented with bounded evidence
+
+## Near-Term Technical Priorities
+
+1. Strengthen Layer-2 switching and troubleshooting depth
+2. Reinforce routing and route-selection reasoning
+3. Build core network-services troubleshooting around DHCP, DNS, NTP, NAT, and VPN
+4. Add monitoring, logging, and recovery proof
+5. Continue Linux/Windows and virtualization depth in direct support of infrastructure roles
+6. Prepare for CCNA and GSEC examinations in November 2026
+
+## Flagship Direction
+
+**Mission-Critical Network & Systems Defense Lab**
+
+The flagship will integrate proven networking and systems capabilities into one recruiter-readable environment. It will reference existing proof rather than duplicate every artifact.
 
 ## Next Milestone
-Complete the networking foundation proof block, then expand into network security, Linux/Windows investigation, security operations, and financial-crime evidence while SEC401/GSEC feeds new capabilities into the portfolio.
+
+Complete the NET-008 through NET-012 proof block, then assemble the strongest evidence into the flagship while keeping the repository centered on one discipline:
+
+**Network & Systems Infrastructure**

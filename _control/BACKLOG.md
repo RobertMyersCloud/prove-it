@@ -1,53 +1,183 @@
-# Prove-It Backlog
+﻿# Prove-It Backlog
 
-Capabilities and projects needing stronger employer-visible proof.
+This backlog tracks capabilities that strengthen the locked discipline:
 
-## Lab Infrastructure
-DHCP reservations; CGNAT evidence; logging/SIEM architecture; monitoring sensor; RAX29 lab AP; VLAN attacker/victim/management/monitoring design; Windows/Linux targets; Active Directory lab.
+**Network & Systems Infrastructure**
 
-## Networking
-Ethernet/MAC learning; ARP; TCP/UDP; DNS; DHCP; ICMP; traceroute/TTL; subnet troubleshooting; static/default/floating routes; NAT/PAT; VLANs; 802.1Q trunks; inter-VLAN routing; STP; EtherChannel; OSPF; FHRP; IPv6; wireless; VPN; monitoring; port mirroring; structured troubleshooting.
+The goal is depth, not breadth.
 
-## Network Security
-ACLs; firewall validation; segmentation; exposure assessment; service enumeration; suspicious DNS/traffic; network attack→detection; hardening; IDS/IPS; Palo Alto concepts; Zero Trust networking.
+New work should strengthen infrastructure design, troubleshooting, operations, resilience, or security rather than open unrelated career lanes.
 
-## Linux
-Filesystem/permissions; users/groups; SUID/SGID; processes/services/systemd; journalctl; SSH; sockets; networking/firewall; Bash; grep/awk/cut/sort/uniq/pipes; hashing; persistence; logs; hardening; SSH/unauthorized-change/compromise investigations.
+## Immediate Networking Depth
 
-## Windows
-PowerShell; users/groups; NTFS; processes/services; firewall; Event Logs; authentication; scheduled tasks; registry; persistence; Sysmon; suspicious-login and endpoint investigations; hardening.
+- 802.1Q trunk behavior
+- Native VLAN behavior and platform limitations
+- Layer-2 fault injection and recovery
+- STP / RSTP concepts and Cisco lab validation
+- EtherChannel / LACP
+- OSPF neighbor formation and route selection
+- Static / default / floating routes
+- FHRP concepts
+- IPv6 addressing and routing
+- Structured subnetting / VLSM design
+- Physical interface and error-state analysis
+- ARP / neighbor-state behavior under failure
+- MAC learning and endpoint movement
+- Wireless fundamentals where relevant
 
-## Active Directory / Identity
-AD DS/domain join; OUs/GPO; Kerberos/NTLM; authentication traffic; MFA/SSO; privilege; common attack paths; detection; forensic artifacts.
+## Core Network Services
 
-## Security Foundations
-Hashing/evidence integrity; encryption; authentication controls; vulnerability assessment; remediation/rescan; HTTP/S; headers/cookies/tokens; REST/JSON; attack surface; risk/controls; NIST.
+- DHCP scopes and lease behavior
+- DHCP options and client troubleshooting
+- DNS client/server troubleshooting
+- NTP and time synchronization
+- NAT / PAT
+- VPN / secure remote access
+- SNMP
+- Syslog
+- Monitoring and alerting
 
-## Security Operations
-Log triage; authentication/network alert/IOC investigations; MITRE ATT&CK; Sentinel/KQL; Splunk/SPL; EDR; incident response; vulnerability monitoring; threat intelligence; Sigma; detection engineering/tuning; multi-source correlation.
+## Network Security and Resilience
 
-## Data Analysis / Automation
-Excel; SQL; Python/Pandas; PowerShell; Bash; large datasets; log parsing; timelines; IOC enrichment; anomaly detection; link analysis; visualization; API enrichment.
+- Stateful firewall behavior
+- ACL placement and validation
+- Default-deny segmentation
+- Management-plane isolation
+- Protected Systems Enclave
+- Firewall logging
+- IDS / IPS fundamentals
+- Secure administrative access
+- Network configuration backup
+- Recovery runbooks
+- Change control and rollback planning
+- Exposure assessment
+- Zero Trust networking principles as they apply to infrastructure
 
-## Financial Crime
-Transaction baselines/anomalies; ATO; payment fraud; velocity; mule patterns; structuring concepts; device/IP correlation; relationship analysis; transaction monitoring; AML; KYC/due diligence; sanctions; investigative reporting; control failures; business/financial impact.
+## Systems and Virtualization
 
-## DFIR
-Acquisition; chain of custody; hashing; disk imaging; filesystem/Windows artifacts; registry/browser/Prefetch/LNK/Jump Lists/MFT/USB; timelines; memory/Volatility; Autopsy; KAPE/Zimmerman-style workflows; Velociraptor concepts; network forensics; incident reconstruction; reporting.
+### Linux
 
-## Threat Hunting
-Hypothesis-driven hunting; baselining; authentication/PowerShell/DNS/persistence/lateral-movement hunts; living-off-the-land; pivots; behavioral analysis; hunt→detection.
+- Filesystems and permissions
+- Users and groups
+- Processes and services
+- systemd
+- SSH
+- sockets
+- Linux networking and firewalling
+- journalctl and logs
+- Bash administration
+- package management
+- storage / LVM
+- hardening
+- backup / restore
 
-## Offensive Security
-Recon; enumeration; exploitation concepts; privilege escalation; credential access; persistence; discovery; lateral movement; collection; C2/exfiltration concepts; attack-chain documentation; attack→detect→investigate→reconstruct.
+### Windows
 
-## Cloud
-AWS/Azure networking, identity, logging and controls; audit logs; cloud incident investigation; cloud forensics fundamentals.
+- PowerShell
+- Windows networking
+- services
+- Event Logs
+- local users / groups
+- NTFS permissions
+- firewall
+- scheduled tasks
+- patching
+- hardening
+- backup / restore
 
-## Flagships
-- Enterprise Network Engineering & Troubleshooting
-- GFACT Applied Cybersecurity Capstone
-- Financial Crime Investigation
-- GSEC Security Operations Capstone
-- Cyber-Enabled Financial Crime Investigation
-- Enterprise DFIR Investigation
+### Virtualization
+
+- Proxmox networking
+- Proxmox backup / restore
+- Hyper-V virtual networking
+- VM lifecycle
+- snapshots versus backups
+- recovery validation
+- resource monitoring
+
+## Infrastructure Observability
+
+- Centralized syslog
+- SNMP polling
+- interface-state monitoring
+- bandwidth / utilization monitoring
+- service health checks
+- time synchronization
+- event correlation
+- packet capture from mirrored traffic
+- baseline versus abnormal behavior
+
+## Automation for Infrastructure
+
+- PowerShell diagnostics
+- Bash diagnostics
+- configuration collection
+- reachability checks
+- route / interface inventory
+- log parsing
+- repeatable validation scripts
+- simple Python only where it directly improves infrastructure operations
+
+## Enterprise Services - Supporting, Not a Separate Career Lane
+
+- Active Directory fundamentals
+- DNS integration
+- DHCP relay
+- domain join
+- authentication basics
+- group policy concepts
+- AAA / RADIUS concepts
+
+These are studied as systems and infrastructure dependencies, not as a return to an IAM-focused career path.
+
+## Cloud - Infrastructure-Relevant Only
+
+- AWS / Azure networking
+- virtual networks / VPCs
+- route tables
+- security groups / network controls
+- VPN / hybrid connectivity
+- cloud logging
+- cloud infrastructure troubleshooting
+
+## Future Security Specialization
+
+Only after the infrastructure foundation and production experience are strong:
+
+- Zeek
+- Suricata
+- NetFlow
+- deeper packet reconstruction
+- network detection
+- incident support
+- network forensics
+- DFIR
+- threat hunting
+- offensive networking / pivoting
+
+These are future specializations built on the infrastructure spine, not present-day competing lanes.
+
+## Planned Proof Block
+
+- **NET-008 - Protected Systems Enclave**
+- **NET-009 - Layer-2 Fault Injection & Recovery**
+- **NET-010 - Centralized Logging & Infrastructure Telemetry**
+- **NET-011 - Secure Remote Management Under CGNAT**
+- **NET-012 - Backup, Failure, Restore & Service Validation**
+
+## Flagship
+
+**Mission-Critical Network & Systems Defense Lab**
+
+The flagship will integrate proven capabilities in:
+
+- Layer 2 / Layer 3 networking
+- segmentation
+- core services
+- virtualization
+- observability
+- troubleshooting
+- recovery
+- security-focused infrastructure operations
+
+No separate financial-crime, IAM, GRC, or unrelated portfolio track is planned inside this repository.
