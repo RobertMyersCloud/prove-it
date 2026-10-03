@@ -140,6 +140,17 @@ These are studied as systems and infrastructure dependencies, not as a return to
 - cloud logging
 - cloud infrastructure troubleshooting
 
+## Separate Packet-Analysis Mini-Project - Requested October 2, 2026
+
+After NET-008, build a standalone hands-on packet-analysis project centered on tcpdump and Wireshark. This project remains separate from the numbered NET lab sequence and combines networking/CCNA analysis with SEC401/security analysis.
+
+- tcpdump: interface selection, capture filters, host/port/protocol filters, bounded captures, PCAP creation, and offline analysis.
+- Wireshark: display filters, endpoints, conversations, TCP streams, protocol analysis, and troubleshooting.
+- Networking perspective: ARP, ICMP, DNS, TCP connection establishment and teardown, Layer 2/3/4 behavior, routing/path observations, retransmissions, resets, and connectivity troubleshooting.
+- Security perspective: establish normal traffic, introduce a controlled abnormal or suspicious condition, isolate relevant traffic, and explain why the behavior stands out.
+- Use original lab traffic and evidence.
+- Finish with one bounded investigation that explains both the network behavior and the security significance.
+
 ## Future Security Specialization
 
 Only after the infrastructure foundation and production experience are strong:

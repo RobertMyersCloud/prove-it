@@ -45,7 +45,7 @@ Security is treated as an integrated infrastructure competency, not a separate c
 
 | ID | Planned Proof | Purpose | Status |
 |---|---|---|---|
-| NET-008 | Protected Systems Enclave | Place a real service behind an explicit trust boundary and validate allowed/denied flows | QUEUED |
+| NET-008 | Protected Systems Enclave | Place a real service behind an explicit trust boundary and validate allowed/denied flows | COMPLETE |
 | NET-009 | Layer-2 Fault Injection & Recovery | Troubleshoot a real VLAN/tagging/uplink fault on physical hardware | QUEUED |
 | NET-010 | Centralized Logging & Infrastructure Telemetry | Generate and collect infrastructure events; validate time and observability | QUEUED |
 | NET-011 | Secure Remote Management Under CGNAT | Solve a real remote-access constraint using supported technology | QUEUED |
