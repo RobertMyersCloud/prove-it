@@ -74,7 +74,7 @@ ENVY showed the corresponding `ESTAB` socket:
 
 ![ENVY established TCP socket](evidence/screenshots/02-envy-tcp-established-socket.png)
 
-**Correction (October 5, 2026):** I originally wrote that Yoda kept the listening socket alongside the established socket and that the listener stayed available for more clients. Screenshot 01 doesn't show that. The `LISTEN` line belongs to `nc` pid `525246` and the `ESTAB` line belongs to `nc` pid `526231`, so the two outputs came from different `nc` runs. The `ss -tanp` output shows no `LISTEN` line at all. Plain `nc -l` accepts one connection and stops listening, so this screenshot does not show `LISTEN` and `ESTAB` at the same time.
+**Correction (October 5, 2026):** I originally wrote that Yoda kept the listening socket alongside the established socket and that the listener stayed available for more clients. Screenshot 01 doesn't show that. The `LISTEN` line belongs to `nc` pid `525246` and the `ESTAB` line belongs to `nc` pid `526231`, so the two outputs came from different `nc` runs. The `ss -tanp` output shows no `LISTEN` line at all. Plain `nc -l` accepts one connection and stops listening, so this screenshot does not show `LISTEN` and `ESTAB` at the same time. The [October 5 re-test](#re-test--october-5-2026) shows both together under one process.
 
 ## TCP Three-Way Handshake
 The live packet capture showed:
@@ -284,37 +284,71 @@ TCP demonstrated ephemeral client-port selection, four-tuple identification, SYN
 
 UDP demonstrated ephemeral client-port selection, a bound `UNCONN` server socket, one-shot datagram delivery, no TCP-style transport acknowledgment or established session, no FIN teardown, and ICMP Port Unreachable when the destination UDP port was closed.
 
-# Retest — Kali to Yoda, Data in Both Directions
+# Re-test — October 5, 2026
 
-## Why I Reran It
-In the original TCP test, data only moved one way. ENVY sent bytes and Yoda acknowledged them, but Yoda never sent any data of its own, so its sequence number stayed at 1. Independent sequence spaces were explained but only one side was actually observed advancing.
+## Why I Re-tested
+The October 5 correction above left two things unproven:
 
-The retest used a different client and a server that answers with data, so both sides would have to send bytes.
+- Screenshot 01 never showed `LISTEN` and `ESTAB` at the same time, because the two lines came from different `nc` runs.
+- No screenshot showed a bounded `tcpdump` capture with the full command visible.
 
-## Setup
-| Item | Value |
-|---|---|
-| Client | Kali VM `10.10.20.103` |
-| Server | Yoda `10.10.20.10:8080`, `python3 -m http.server 8080 --bind 10.10.20.10` |
-| Capture point | Yoda, bridge `vmbr0` |
-| Capture | `tcpdump -i vmbr0 -nn -c 20 -w <file>.pcap 'host 10.10.20.103 and tcp port 8080'` |
+The original test also only had data moving one way. Yoda acknowledged ENVY's bytes but never sent any of its own, so Yoda's sequence number stayed at 1.
 
-Before the data test I checked what was actually listening on Yoda instead of assuming:
+## What Changed From the Original
+| Item | Original | Re-test |
+|---|---|---|
+| Client | ENVY `10.10.20.101` | Kali `10.10.20.103` |
+| Server process | `nc -l` on Yoda | `python3 -m http.server 8080 --bind 10.10.20.10` on Yoda |
+| Capture point | ENVY | Yoda, bridge `vmbr0` |
+
+ENVY is now in the VLAN 30 enclave, and the enclave rules stop it from opening connections into the lab LAN (see NET-008). Kali is on the same LAN as Yoda, so it became the client.
+
+I checked netcat on Yoda before using it as the listener:
 
 ```text
-ss -tlnp | grep 8080
-LISTEN 0  5  10.10.20.10:8080  0.0.0.0:*  users:(("python3",pid=2364379,fd=3))
-
-ps -o pid,lstart,args -p 2364379
-2364379 Mon Oct 5 13:58:52 2026 python3 -m http.server 8080 --bind 10.10.20.10
+root@yoda:~# nc -h 2>&1 | head -1
+[v1.10-50]
 ```
 
-I expected `nc`. It was the Python HTTP server I had started at the beginning of the session. That changed the test: raw text sent to it would get an HTTP error back, so I used `curl` to send a real HTTP request.
+That is traditional netcat. In this version `-k` turns on TCP keepalive; it does not keep the listener open after the first connection. Installing a different netcat would have meant opening a temporary egress window for Yoda just to get a tool, so I used Python's built-in web server instead. It keeps its listening socket open and gives each accepted connection its own socket.
 
-`http.server` serves the directory it was started from, which on Yoda was `/root`. It was stopped with `kill` as soon as the capture finished, and `ss` confirmed nothing was left listening on 8080.
+## Capture
+The capture was started before the listener and the client, so it would catch the first packet of the connection:
 
-## Run 01 — Connection With No Data
-This run was not planned. A reachability check from Kali (`nc -v 10.10.20.10 8080`) happened while the capture was already armed, so it was recorded. I kept it because it shows something the original test did not.
+```text
+tcpdump -i vmbr0 -nn -c 20 -w /root/net002-retest.pcap 'host 10.10.20.103 and tcp port 8080'
+```
+
+- `-i vmbr0`: Yoda's bridge, which holds `10.10.20.10`
+- `-c 20`: stop after 20 packets
+- `-w`: write raw packets to a file to read back later
+- filter: only Kali to and from TCP 8080
+
+## LISTEN and ESTAB From One Command
+With the server running, I connected from Kali and left the connection idle:
+
+```text
+nc -v 10.10.20.10 8080
+(UNKNOWN) [10.10.20.10] 8080 (http-alt) open
+```
+
+While that connection was open, one `ss` command on Yoda showed both sockets:
+
+```text
+ss -tanp 'sport = :8080'
+LISTEN  10.10.20.10:8080  0.0.0.0:*            users:(("python3",pid=2364379,fd=3))
+ESTAB   10.10.20.10:8080  10.10.20.103:51868   users:(("python3",pid=2364379,fd=4))
+```
+
+One process, two sockets, at the same moment:
+
+- **fd 3** is the listening socket, still waiting for new clients.
+- **fd 4** is the conversation with Kali on source port `51868`.
+
+This is what the original screenshot 01 was supposed to show and didn't.
+
+## Connection 1 — Held Open, No Data
+I left the connection idle, then closed it from Kali with Ctrl+C. The capture stopped at 6 packets, 0 dropped.
 
 | Time | Direction | Flags | Seq / Ack |
 |---|---|---|---|
@@ -325,33 +359,41 @@ This run was not planned. A reachability check from Kali (`nc -v 10.10.20.10 808
 | 14:03:27.150 | Yoda → Kali | `F.` | seq 1, ack 2 |
 | 14:03:27.150 | Kali → Yoda | `.` | ack 2 |
 
-Observations:
+- Yoda acknowledged Kali's initial sequence number plus one, because the SYN consumes a sequence number.
+- The connection stayed established for 3 minutes 41 seconds with no packets at all. An idle TCP connection sends nothing unless the application turns on keepalives. A capture that started after 13:59:46 would have seen only the teardown.
+- Kali closed first, and Yoda answered with its ACK and its own FIN in one segment. That makes three segments, the same pattern as the original test. Kali, as the side that closed first, entered `TIME-WAIT`.
 
-- Yoda acknowledged Kali's initial sequence number plus one. The SYN consumed one sequence number.
-- The connection stayed established for 3 minutes 41 seconds with **no packets at all**. An idle TCP connection sends nothing unless the application turns on keepalives, and `nc` does not.
-- I closed the client with Ctrl+C, so Kali sent the first FIN. Yoda acknowledged it and sent its own FIN in the same segment, giving a three-segment teardown, the same pattern as the original test.
-- Kali closed first, so Kali was the side that entered `TIME-WAIT`.
+After the teardown I checked the server again. The listening socket was still open and still owned by the same process:
 
-If a capture had started any time after 13:59:46, the only thing it would have shown is the teardown. A quiet, long-lived connection can't be fully tied to its start without the handshake.
-
-## Run 02 — Data in Both Directions
 ```text
+ss -tlnp | grep 8080
+LISTEN 0  5  10.10.20.10:8080  0.0.0.0:*  users:(("python3",pid=2364379,fd=3))
+
+ps -o pid,lstart,args -p 2364379
+2364379 Mon Oct 5 13:58:52 2026 python3 -m http.server 8080 --bind 10.10.20.10
+```
+
+The server closed its connection socket, but not its listener. Plain `nc -l` could not do that.
+
+## Connection 2 — Data in Both Directions
+Because the listener was still up, I ran a second capture to get data moving both ways:
+
+```text
+tcpdump -i vmbr0 -nn -c 20 -w /root/net002-retest-02.pcap 'host 10.10.20.103 and tcp port 8080'
 curl -v -o /dev/null http://10.10.20.10:8080/
 ```
 
-`curl` reported an HTTP/1.0 `200 OK` with `Content-Length: 657`, and noted that HTTP/1.0 closes the connection after the body.
+`curl` reported an HTTP/1.0 `200 OK` with `Content-Length: 657`, and noted that HTTP/1.0 closes the connection after the body. The capture stopped at 11 packets, 0 dropped.
 
-Before reading the capture back, I predicted the byte counts from the request and response headers. The capture matched every one:
+Before reading the capture back, I worked out the byte counts from the request and response headers. The capture matched:
 
-| Prediction | Observed |
+| Expected | Observed |
 |---|---|
 | GET request = 80 bytes, Kali `seq 1:81` | `[P.] seq 1:81, length 80` |
 | Yoda acknowledges with `ack 81` | `[.] ack 81` |
 | Response headers = 155 bytes | `[P.] seq 1:156, length 155` |
 | Body = 657 bytes, Yoda data ends at 813 | `[FP.] seq 156:813, length 657` |
 | Kali final acknowledgment = 814 | `[.] ack 814` |
-
-Full sequence:
 
 | Direction | Flags | Seq / Ack | Length |
 |---|---|---|---|
@@ -369,40 +411,41 @@ Full sequence:
 
 The whole exchange took about 2.2 ms.
 
-### Independent Sequence Spaces
-This is what the original test could not show.
+**Independent sequence spaces.** Each side counted only its own bytes, and each side's ACK referred to the other side's count:
 
 ```text
 Kali seq:  1 -> 81 -> 82
 Yoda seq:  1 -> 156 -> 813 -> 814
 ```
 
-Each side counted only its own bytes, and each side's ACK referred to the other side's count.
+**FIN on the data segment.** Yoda set FIN on the same segment that carried the last 657 bytes of the body (`[FP.]`). The data ended at 813 and the FIN consumed one more sequence number, which is why Kali's final ACK was 814.
 
-### FIN on the Data Segment
-Yoda did not send a separate FIN. It set FIN on the same segment that carried the last 657 bytes of the body (`[FP.]`). The data ended at 813 and the FIN consumed one more sequence number, which is why Kali's final acknowledgment was 814.
+**Server-initiated close.** HTTP/1.0 closes after the response, so this time Yoda closed first and was the side that entered `TIME-WAIT`. The packet order shows this. I did not capture it in Yoda's socket table, because the 60-second `TIME-WAIT` period had passed by the time I checked.
 
-### Server-Initiated Close
-HTTP/1.0 closes after the response, so this time Yoda closed first. Kali acknowledged the FIN, then sent its own FIN after `curl` finished, and Yoda acknowledged it with `ack 82`.
+## Cleanup
+`http.server` serves the directory it was started from, which on Yoda was `/root`. I stopped it with `kill 2364379` as soon as the captures were done, and `ss -tlnp | grep 8080` came back empty.
 
-Because Yoda closed first, Yoda was the side that entered `TIME-WAIT`. That is shown by the packet sequence. I did not capture it in Yoda's socket table, because the 60-second `TIME-WAIT` period had already passed when I checked.
-
-## Retest Comparison
-| | Original | Run 01 | Run 02 |
+## Re-test Comparison
+| | Original | Connection 1 | Connection 2 |
 |---|---|---|---|
 | Client | ENVY | Kali | Kali |
-| Server | `nc` on Yoda | `http.server` on Yoda | `http.server` on Yoda |
+| Server | `nc -l` | `http.server` | `http.server` |
+| LISTEN and ESTAB shown together | No | Yes, same PID | Listener confirmed still open afterward |
 | Data sent by client | 10 bytes, then 1 | None | 80 bytes |
 | Data sent by server | None | None | 812 bytes |
 | Both sequence numbers advanced | No | No | Yes |
 | Side that closed first | Client | Client | Server |
-| Teardown | 3 segments | 3 segments | FIN on data, then ACK, FIN, ACK |
 | `TIME-WAIT` on | ENVY (socket table) | Kali (from packets) | Yoda (from packets) |
+
+## Re-test Evidence Limits
+- I haven't captured ENVY's ephemeral-port range check yet.
+- Kali's ephemeral-port range wasn't checked, so ports `51868` and `35920` aren't compared against a range.
+- `TIME-WAIT` in the re-test is shown by packet order only, not by a socket table.
 
 ## Evidence Handling
 The two UDP PCAPs are retained locally under `evidence/raw/`, which is excluded from version control.
 
-The two retest PCAPs are kept on Yoda and are not published. The retest summaries are `tcpdump -nn -r` readbacks written without `-e`, so they contain no MAC addresses. They were copied out of the lab as text rather than opening a network path from the lab to my workstation.
+The two re-test PCAPs are kept on Yoda and are not published. The re-test summaries are `tcpdump -nn -r` readbacks written without `-e`, so they contain no MAC addresses.
 
 Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots required to support the findings. Persistent Layer 2 identifiers and unrelated raw packet data are not published when unnecessary to the hiring claim.
 
@@ -421,10 +464,10 @@ Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots r
 | `10-udp-closed-port-icmp-unreachable.png` | Closed UDP port and ICMP Port Unreachable |
 | `udp-open-port-summary.txt` | TShark-derived open-port UDP evidence |
 | `udp-closed-port-summary.txt` | TShark-derived closed-port UDP/ICMP evidence |
-| `net002-retest-01-summary.txt` | Retest run 01: handshake, 3m41s idle, client-initiated teardown |
-| `net002-retest-02-summary.txt` | Retest run 02: data both directions, FIN on data segment, server-initiated close |
+| `net002-retest-01-summary.txt` | Re-test connection 1: handshake, 3m41s idle, client-initiated teardown |
+| `net002-retest-02-summary.txt` | Re-test connection 2: data both directions, FIN on data segment, server-initiated close |
 
 ## Status
 **PROVEN**
 
-TCP and UDP behavior was generated on the physical lab network, validated through operating-system socket state and packet evidence, compared directly, and documented with focused public evidence. The Kali-to-Yoda retest added data in both directions, showing both sequence spaces advancing independently, and a server-initiated close.
+TCP and UDP behavior was generated on the physical lab network, validated through operating-system socket state and packet evidence, compared directly, and documented with focused public evidence. The October 5 re-test showed `LISTEN` and `ESTAB` together under one process, a bounded capture with its full command, data in both directions, and a server-initiated close.
