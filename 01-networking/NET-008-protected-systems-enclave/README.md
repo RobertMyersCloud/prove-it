@@ -267,7 +267,7 @@ This lab included several distinct troubleshooting points:
 8. [Fedora permanent firewall policy before tightening](evidence/34-firewall-permanent-before-tightening.png)
 9. [Windows persistent enclave route](evidence/09-windows-persistent-enclave-route.png)
 
-Re-test evidence (October 5, 2026) is shown inline in the section below, numbered 10–41. Numbers 15, 16, 21, 23 and 29 were not kept as screenshots; their terminal output is in [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt).
+Re-test evidence (October 5, 2026) is shown inline below, numbered 10–41. Patch window evidence is numbered 43–57; 42 (disk space) is in the patch window text. Numbers 15, 16, 21, 23 and 29 were not kept as screenshots; their terminal output is in [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt).
 
 ## Result
 
@@ -405,9 +405,95 @@ The SSH restriction was not exposed through this path: both interfaces were in t
 
 ### Production Considerations
 
-- The enclave now has no standing internet egress. OS updates require a change window: temporarily allow VLAN30 egress, update, remove the allow, then re-run this validation matrix.
+- The enclave now has no standing internet egress. OS updates need a change window. I ran the first one the same day; see Patch Window below.
 - In production, the ER605 and firewalld changes would go through change control with a rollback plan. The two-stage `--permanent` then `--reload` sequence used here is the host-level version of that discipline.
 - Host interface inventory (`ip -br link`, `ip route`) belongs in any segmentation acceptance test.
+
+## Patch Window — October 5, 2026
+
+With egress blocked, Fedora can't reach its update mirrors. I opened a temporary, narrow path, patched, closed it, and re-tested.
+
+**Plan and rollback before starting**
+
+- The temporary rule must let VLAN30 reach the internet without reopening the household network.
+- If the update broke something: `sudo dnf history undo last`.
+- If the ER605 change misbehaved: delete the one rule I added.
+- Before the reboot: confirm console access to ENVY in case SSH didn't come back.
+
+**Pre-change checks**
+
+- Disk: 222 GB free on `/` (6% used).
+- HTTPS to `mirrors.fedoraproject.org` timed out: `curl: (28) Connection timed out`, status `000`. That's the protocol dnf uses, so it's a better test than ping.
+
+![HTTPS blocked before the window](evidence/43-pre-change-https-egress-blocked.png)
+
+**Opening the window**
+
+Pulling VLAN30 out of `GRP_LabNet` would also reopen the household network, so I didn't do that. Instead I created `GRP_Enclave` (VLAN30 only) and added an allow rule for it. The ER605 ACL form has an optional ID field that sets the rule's position, so I placed the rule at ID 2:
+
+| ID | Rule | Effect for VLAN30 |
+|---|---|---|
+| 1 | `DENY_Lab_to_Household` | household still denied, matched first |
+| 2 | `TEMP_ALLOW_Enclave_Updates` | internet allowed |
+| 3 | `DENY_Lab_to_Any` | everything else denied |
+| 4 | `DENY_VLAN30_TO_LAB` | lab LAN still denied |
+
+![GRP_Enclave created](evidence/44-er605-grp-enclave-created.png)
+
+![ACL add form with ID field](evidence/45-er605-acl-add-form.png)
+
+![Temporary rule at ID 2](evidence/46-er605-temp-allow-rule-order.png)
+
+Before using the window I tested that it only opened what I intended. The household router was still unreachable, and the mirror site answered with `302`.
+
+![Household still blocked with window open](evidence/47-window-open-household-still-blocked.png)
+
+![HTTPS open with window open](evidence/48-window-open-https-egress-allowed.png)
+
+The service type was `ALL` because dnf may use HTTP or HTTPS mirrors. In production I'd narrow it to ports 80 and 443, and to the mirror destinations if the firewall supports it.
+
+**Update**
+
+A dry run (`sudo dnf upgrade --refresh --assumeno`) showed 150 packages and a 1 GiB download, so I knew the size before committing. The real run listed a new kernel, `7.2.8-200.fc44`, so a reboot was needed.
+
+![dnf dry run](evidence/49-dnf-upgrade-dry-run.png)
+
+![New kernel in the transaction](evidence/50-dnf-upgrade-kernel-in-transaction.png)
+
+![dnf complete](evidence/51-dnf-upgrade-complete.png)
+
+dnf also replaced an update that GNOME Software had queued in the background back when the host still had Wi-Fi.
+
+**Closing the window**
+
+I deleted the temporary rule before rebooting, since nothing else needed internet access. Deleting instead of disabling means there's no allow rule left that could be switched back on by mistake. `GRP_Enclave` stays for the next window. HTTPS to the mirror site timed out again.
+
+![Temporary rule removed](evidence/52-er605-temp-rule-removed.png)
+
+![HTTPS blocked after the window](evidence/53-window-closed-https-egress-blocked.png)
+
+**After the reboot**
+
+| Check | Result |
+|---|---|
+| Running kernel | `7.2.8-200.fc44.x86_64` |
+| Wi-Fi radio | `disabled`; only VLAN30 routes |
+| Firewall zone | `dhcpv6-client` only, no open ports, `/32` SSH rule present |
+| Passim | `masked` |
+| DNS | resolves through the ER605 |
+| SSH from Victus | reconnected normally |
+
+![New kernel running](evidence/54-post-reboot-new-kernel.png)
+
+![Wi-Fi off and single-homed](evidence/55-post-reboot-wifi-off-single-homed.png)
+
+![Firewall and Passim after reboot](evidence/56-post-reboot-firewall-and-passim.png)
+
+![DNS after reboot](evidence/57-post-reboot-dns-works.png)
+
+One change I didn't expect: the default route's metric went from 100 to 20100. After boot, NetworkManager's connectivity check couldn't reach the internet, so it marked the connection as limited and added a 20000 penalty to that route. With only one default route, traffic still goes to `10.10.30.1`. The host noticed for itself that it has no internet.
+
+The window was open for about 50 minutes, and the update was the only thing that used it.
 
 ## Status
 **PROVEN**
