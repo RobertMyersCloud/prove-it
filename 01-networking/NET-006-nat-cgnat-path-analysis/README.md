@@ -2,7 +2,9 @@
 
 ## Hiring Claim
 
-This artifact demonstrates that I can trace addressing and routing boundaries through a nested network, distinguish RFC1918 private addressing from RFC6598 carrier-grade NAT shared address space, identify an upstream CGNAT condition, recognize the limits of traceroute and available router telemetry, and document only what the collected evidence actually proves.
+> After reviewing this artifact, a hiring manager has evidence that I can trace addressing boundaries through a nested lab/household network and identify CGNAT, by recognizing an RFC 6598 `100.64.0.0/10` WAN address and confirming that the Internet-visible address is different.
+
+The title says NAT, but I didn't capture any translation evidence (no NAT/session table, no before-and-after packet capture). The NAT boundaries here are inferred from addressing and routing, not observed.
 
 ## Skills Demonstrated
 
@@ -44,7 +46,7 @@ ISP / CGNAT
 Public Internet
 ```
 
-Yoda is intentionally restricted from Internet access by lab security policy. That control was not weakened for this experiment.
+Lab hosts on `10.10.20.0/24`, Yoda included, have no internet egress by design. The ER605 rule `DENY_Lab_to_Any` blocks lab-to-WAN traffic (LAB-001; the rule is shown in NET-008 evidence 24, `24-er605-acl-rules-before.png`). That control was not weakened for this experiment.
 
 ## Experiment 1 — Yoda Route and First Hop
 
@@ -62,7 +64,7 @@ Both conventional and TCP/443 traceroute identified the ER605 as the first respo
 
 ### Finding
 
-The evidence proves that Yoda selects `10.10.20.1` as its first routed hop for an off-subnet destination. The nonresponsive hops after the ER605 are not identified.
+The evidence proves that Yoda selects `10.10.20.1` as its first routed hop for an off-subnet destination. The nonresponsive hops after the ER605 are not identified. Silence after hop 1 is what I'd expect with `DENY_Lab_to_Any` in place, but I didn't capture anything on the ER605 showing the probes being dropped.
 
 ## Experiment 2 — ER605 WAN Boundary
 
@@ -76,8 +78,6 @@ Connection:      Dynamic IP
 ```
 
 ![ER605 WAN private address](evidence/screenshots/02-er605-wan-private-address.png)
-
-The ER605 WAN MAC address was redacted from the public screenshot.
 
 ### Finding
 
@@ -96,8 +96,6 @@ Connection:      Dynamic IP
 ```
 
 ![AX55 CGNAT WAN address](evidence/screenshots/03-ax55-cgnat-wan-address.png)
-
-The AX55 MAC address was redacted from public evidence.
 
 `100.67.28.24` falls within `100.64.0.0/10`, the shared address space used for carrier-grade NAT.
 
@@ -125,8 +123,6 @@ WAN/public match:       NO
 
 ![CGNAT WAN versus public IP](evidence/screenshots/04-cgnat-wan-vs-public-ip.png)
 
-The exact public IPv4 is retained locally and redacted from the repository.
-
 ### Finding
 
 Two independent facts support the CGNAT conclusion:
@@ -134,7 +130,7 @@ Two independent facts support the CGNAT conclusion:
 1. The AX55 WAN address is within `100.64.0.0/10`.
 2. The Internet-visible IPv4 is different from the AX55 WAN IPv4.
 
-Together, these demonstrate an upstream carrier translation boundary between the AX55 and the public Internet.
+Together, these support the conclusion that there is a carrier translation boundary between the AX55 and the public Internet.
 
 ## Experiment 5 — AX55 Routing Table
 
@@ -154,7 +150,7 @@ The routing table independently corroborates the AX55 topology from `192.168.1.0
 
 ## Security-Control Observation
 
-An attempted public-IP lookup from Yoda timed out during name resolution. I didn't check Yoda's resolver configuration at the time, so I can't say whether the timeout came from the lab egress policy or from DNS not being set up on Yoda. Either way, Yoda has no internet access by design.
+An attempted public-IP lookup from Yoda timed out during name resolution. I didn't check Yoda's resolver configuration at the time, so I can't say whether the timeout came from the lab egress policy or from DNS not being set up on Yoda. Either way, Yoda has no internet access by design (`DENY_Lab_to_Any`; LAB-001, NET-008 evidence 24).
 
 The security control was left intact. ENVY was used for the public-side comparison instead of weakening isolation simply to complete the experiment.
 
@@ -171,13 +167,20 @@ The collected evidence directly establishes:
 - AX55 upstream gateway `100.67.28.1`
 - AX55 WAN membership in `100.64.0.0/10`
 - a different Internet-visible public IPv4
-- an upstream CGNAT condition
+
+From those facts I conclude there is an upstream CGNAT condition. That is a conclusion, not something the evidence shows directly.
 
 The collected evidence does not include a router NAT/session table showing a live mapping such as `inside-address:port -> translated-address:port`.
 
 Yoda also did not generate an allowed end-to-end Internet flow through every boundary because its isolation policy remained enabled.
 
 Accordingly, this artifact does not claim packet-level observation of every possible translation from Yoda to the Internet.
+
+### Evidence Limits
+
+- Screenshot 04 is an echo-style summary I printed, not raw command output. The `ip route get` line is real output, but the AX55 WAN address, the `100.64.0.0/10` range, and `match: NO` are values I typed in. The command I used to look up the Internet-visible IPv4 isn't shown.
+- No NAT translation was captured at either router, so the ER605 and AX55 NAT boundaries are inferred from addressing and routing.
+- Nothing past the ER605 was identified by traceroute.
 
 ## Evidence Index
 
@@ -190,6 +193,17 @@ Accordingly, this artifact does not claim packet-level observation of every poss
 | `05-ax55-routing-table-cgnat-upstream.png` | AX55 connected networks and CGNAT-side default route |
 | `nat-cgnat-findings.txt` | Concise evidence-derived findings |
 
+## Evidence Handling
+
+Identifiers that don't matter to the findings were redacted from the screenshots before publishing:
+
+- 01: Yoda's IPv6 link-local address (`[YODA-LINK-LOCAL]`)
+- 02: ER605 firmware version (`[FIRMWARE]`) and WAN MAC (`[ER605 MAC]`)
+- 03: ISP DNS servers (`[ISP-DNS-1]`, `[ISP-DNS-2]`) and AX55 MAC (`[AX55 MAC]`)
+- 04: Internet-visible IPv4 (`[PUBLIC-IP]`), retained locally
+
+Private lab and household addresses and the CGNAT-range WAN address were kept because the findings depend on them.
+
 ## Key Takeaway
 
 The strongest CGNAT proof in this experiment was the combination of an AX55 WAN address inside `100.64.0.0/10` and a different IPv4 observed from the public Internet.
@@ -197,3 +211,5 @@ The strongest CGNAT proof in this experiment was the combination of an AX55 WAN 
 ## Status
 
 **PROVEN**
+
+The addressing boundaries and the CGNAT condition are supported by router status pages, the AX55 routing table, and the WAN-versus-public comparison. NAT translation itself was not captured, and the public-side comparison is a typed summary rather than raw output.

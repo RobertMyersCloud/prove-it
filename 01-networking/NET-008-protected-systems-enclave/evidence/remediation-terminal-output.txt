@@ -8,6 +8,7 @@ which contains the adapter MAC address.
 
 ------------------------------------------------------------------
 1. DHCP-supplied resolver (before the ER605 fix)
+   Finding 1. No evidence number.
 ------------------------------------------------------------------
 $ nmcli -f DHCP4 device show enp0s20f0u3u3c2   (excerpt)
 DHCP4.OPTION[4]:   dhcp_server_identifier = 10.10.30.1
@@ -18,6 +19,7 @@ DHCP4.OPTION[27]:  routers = 10.10.30.1
 
 ------------------------------------------------------------------
 2. Routing table before Wi-Fi was disabled (dual-homed)
+   Stands in for evidence 15 (Finding 2).
 ------------------------------------------------------------------
 $ ip route
 default via 10.10.30.1 dev enp0s20f0u3u3c2 proto dhcp src 10.10.30.100 metric 100
@@ -27,6 +29,7 @@ default via 192.168.1.1 dev wlo1 proto dhcp src 192.168.1.3 metric 600
 
 ------------------------------------------------------------------
 3. Wi-Fi radio disabled; routing table after
+   Stands in for evidence 16 (Finding 2).
 ------------------------------------------------------------------
 $ sudo nmcli radio wifi off
 $ ip route
@@ -35,6 +38,7 @@ default via 10.10.30.1 dev enp0s20f0u3u3c2 proto dhcp src 10.10.30.100 metric 10
 
 ------------------------------------------------------------------
 4. Lease renewed after the ER605 DHCP fix; resolution via lab path
+   Stands in for evidence 21 (Finding 1).
 ------------------------------------------------------------------
 $ sudo nmcli connection up "Wired connection 1"
 Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/4)
@@ -51,6 +55,7 @@ example.com: 2606:4700:10::6814:179a           -- link: enp0s20f0u3u3c2
 
 ------------------------------------------------------------------
 5. Internet egress from VLAN30 before VLAN30 joined GRP_LabNet
+   Stands in for evidence 23 (Finding 3).
 ------------------------------------------------------------------
 $ ping -c 3 -W 2 1.1.1.1
 PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
@@ -61,3 +66,11 @@ PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 --- 1.1.1.1 ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 2001ms
 rtt min/avg/max/mdev = 14.936/18.076/21.114/2.523 ms
+
+------------------------------------------------------------------
+6. Disk space before the patch window
+   Stands in for evidence 42 (Patch Window pre-change check).
+------------------------------------------------------------------
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p3  236G   14G  222G   6% /

@@ -13,39 +13,83 @@ After reviewing this artifact, a hiring manager has evidence that I can place a 
 - Service-state versus network-path troubleshooting
 - Positive and negative control testing
 
-## Objective
+## Summary — Current State
+
+ENVY (Fedora, `10.10.30.100`) is the enclave host on VLAN30. Victus (Windows 11, `10.10.20.102`) is the only host allowed to manage it. This is the state after the October 5, 2026 re-test and patch window:
+
+- **ER605:** `DENY_VLAN30_TO_LAB` blocks VLAN30 → lab LAN. VLAN30 is in `GRP_LabNet`, so the existing `DENY_Lab_to_Household` and `DENY_Lab_to_Any` rules also block household and internet egress.
+- **DNS:** VLAN30 DHCP hands out the ER605 (`10.10.30.1`) as the resolver.
+- **ENVY interfaces:** single-homed on VLAN30; Wi-Fi radio off.
+- **ENVY firewalld:** the zone allows only `dhcpv6-client` plus an SSH rich rule for `10.10.20.102/32`. No open ports.
+- **ENVY services:** `passim` masked.
+
+The October 5 re-test found five problems in the October 2 build:
+
+1. [Finding 1](#finding-1--vlan30-dhcp-handed-out-a-nonexistent-dns-server): VLAN30 DHCP handed out `10.10.31.1` (a typo) as DNS.
+2. [Finding 2](#finding-2--the-enclave-host-was-dual-homed-on-the-household-network): ENVY was also on the household network over Wi-Fi.
+3. [Finding 3](#finding-3--vlan30-had-household-and-internet-egress-through-the-er605): VLAN30 had household and internet egress through the ER605.
+4. [Finding 4](#finding-4--the-ssh-lockdown-was-the-only-inbound-restriction): ports `1025-65535` were open, and Yoda reached `passimd` on 27500.
+5. [Finding 5](#finding-5--a-pre-rule-ssh-session-from-yoda-survived-about-two-and-a-half-days): an SSH session from Yoda, opened before the `/32` rule, was still active.
+
+[Patch Window](#patch-window--october-5-2026): I patched ENVY through a temporary ER605 allow rule, deleted the rule, rebooted, and re-checked the controls.
+
+### Validation Matrix
+
+| Source | Destination | Test | Before Oct 5 fixes | After Oct 5 fixes | Evidence (before / after) |
+|---|---|---|---|---|---|
+| Victus 10.10.20.102 | ENVY 10.10.30.100 | TCP/22, SSH login | Allowed | Allowed | 02, 03, 09 / 14 |
+| Yoda 10.10.20.10 | ENVY | New TCP/22 | Rejected | Rejected | 05 / 13 |
+| Yoda | ENVY | High port (27500 before, 5355 after) | **Open** | Rejected | 37 / 41 |
+| ENVY | Yoda | ICMP | Blocked | Blocked | 06 / 33 |
+| ENVY | Yoda | TCP/22 | Blocked (timeout) | Not re-tested | 06 |
+| ENVY | Household 192.168.1.1 | ICMP | **Allowed** | Blocked | 22 / 30, 47 |
+| ENVY | Internet 1.1.1.1 | ICMP | **Allowed** | Blocked | output §5 / 31 |
+| ENVY | mirrors.fedoraproject.org | HTTPS | Not tested | Timed out | 43, 53 |
+| ENVY | ER605 10.10.30.1 | DNS from DHCP | **10.10.31.1** | Resolves | 18, output §1 / 17, 20, 32, 57 |
+| ENVY | — | Default routes | **VLAN30 and Wi-Fi** | VLAN30 only | output §2 / output §3, 55 |
+| ENVY | — | firewalld zone | **`samba-client`, `1025-65535`** | `dhcpv6-client`, `/32` SSH rule | 04, 34 / 39, 40, 56 |
+
+"Output §n" is a section of [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt).
+
+## Original Build — October 2, 2026
+
+This section is the build as I documented it on October 2. Where the October 5 re-test proved something here wrong or incomplete, it's marked.
+
+### Objective
 
 Build and validate a protected systems enclave using VLAN segmentation, routed management access, and host-level firewall controls.
 
 The goal was to move beyond basic VLAN separation and prove that a protected host could be managed from an authorized system while remaining isolated from unauthorized management systems and unable to initiate connections back into the management network.
 
-## Environment
+*(Not met as of October 2: ENVY could still reach the household network and the internet, and its firewall zone left ports `1025-65535` open. See Findings 2–4.)*
+
+### Environment
 
 | System | Role | Address |
 |---|---|---|
-| Windows workstation | Authorized management host | 10.10.20.102 |
-| Yoda / Proxmox | Management-side infrastructure host | 10.10.20.10 |
-| Fedora | Protected enclave host | 10.10.30.100 |
+| Victus (Windows 11) | Authorized management host | 10.10.20.102 |
+| Yoda (Proxmox) | Management-side infrastructure host | 10.10.20.10 |
+| ENVY (Fedora, hostname `fedora`) | Protected enclave host | 10.10.30.100 |
 | ER605 | Inter-VLAN gateway / policy enforcement | 10.10.20.1 / 10.10.30.1 |
 | VLAN30 | Protected systems enclave | 10.10.30.0/24 |
 | Lab LAN | Management network | 10.10.20.0/24 |
 
-## Design
+### Design
 
 The protected enclave uses two layers of control:
 
 1. The ER605 blocks VLAN30 from initiating connections into the management LAN.
-2. Fedora firewalld restricts SSH management access to the designated Windows management workstation at 10.10.20.102.
+2. firewalld on ENVY restricts SSH management access to Victus at 10.10.20.102.
 
 This creates an asymmetric trust model:
 
 ```text
-Authorized Management Host
+Victus (authorized)
 10.10.20.102
         |
         | TCP/22 allowed
         v
-Protected Fedora Host
+ENVY (protected host)
 10.10.30.100
 
 Yoda
@@ -61,16 +105,18 @@ Management LAN
 10.10.20.0/24
 ```
 
-## Initial Validation
+*(Superseded: two layers were not enough. The final design also relies on VLAN30 being in `GRP_LabNet`, DNS through the ER605, a single-homed host, a tightened firewalld zone, and `passim` masked. See the [Summary](#summary--current-state).)*
 
-Fedora was connected to the protected VLAN with:
+### Initial Validation
+
+ENVY was connected to the protected VLAN with:
 
 ```text
 Address: 10.10.30.100/24
 Gateway: 10.10.30.1
 ```
 
-Initial testing confirmed that Fedora could reach its VLAN gateway but could not reach Yoda at 10.10.20.10.
+Initial testing confirmed that ENVY could not reach Yoda at 10.10.20.10 (screenshot 06, under Enclave Isolation Test):
 
 ```bash
 ping -c 3 10.10.20.10
@@ -79,11 +125,13 @@ nc -vz -w 3 10.10.20.10 22
 
 Both tests failed.
 
+Not captured: ENVY reaching its gateway `10.10.30.1` in this project. NET-007 screenshot 02 shows that test from NET-007.
+
 The ER605 ACL confirmed that VLAN30 was blocked from initiating traffic into the management LAN.
 
 ![ER605 VLAN30 to Lab deny rule](evidence/07-er605-vlan30-to-lab-deny-rule.png)
 
-## Reverse-Path Validation
+### Reverse-Path Validation
 
 Traffic from the management network into VLAN30 was tested from Yoda.
 
@@ -94,22 +142,26 @@ nc -vz -w 3 10.10.30.100 22
 
 ICMP succeeded.
 
-The first TCP/22 test returned `Connection refused`, which showed that the network path was working but SSH was not yet listening on Fedora.
+The first TCP/22 test returned `Connection refused`, which showed that the network path was working but SSH was not yet listening on ENVY.
 
 After enabling `sshd`, TCP/22 became reachable from Yoda.
 
 This separated a service-state issue from a routing or firewall issue.
 
-## Windows Routing Issue
+Not captured: the Yoda ping, the `Connection refused` result, and enabling `sshd`. The lab LAN → VLAN30 path is shown later: on October 5 Yoda connected to ENVY on port 27500 (screenshot 37).
 
-The Windows management workstation was dual-homed:
+### Windows Routing Issue
 
-- 10.10.20.102 on the lab network
-- 192.168.1.18 on the household network
+Victus was dual-homed:
 
-An initial connection attempt to 10.10.30.100 used the Wi-Fi interface and household gateway instead of the lab path.
+- 10.10.20.102 on the lab network (Ethernet 2)
+- 192.168.1.18 on the household network (Wi-Fi)
 
-Route inspection confirmed that Windows was selecting the wrong interface.
+Screenshot 10, captured October 5, shows both addresses.
+
+An initial connection attempt to 10.10.30.100 used the Wi-Fi interface and household gateway instead of the lab path. Route inspection confirmed that Windows was selecting the wrong interface.
+
+Not captured: the failed attempt and the route inspection before the fix. The screenshots below show the route after it.
 
 A specific route was added for the enclave network:
 
@@ -123,11 +175,13 @@ The corrected route uses Ethernet 2, source address 10.10.20.102, and next hop 1
 
 ![Windows persistent enclave route](evidence/09-windows-persistent-enclave-route.png)
 
+Screenshot 01 (`Find-NetRoute`) shows a `10.10.30.0/24` route on Ethernet 2 (ifIndex 23) with next hop `10.10.20.1` and source `10.10.20.102`, but with RouteMetric 256 and InterfaceMetric 25, not the `metric 5` in the command. Screenshot 09 (`Get-NetRoute`) shows RouteMetric 5, which matches the command. Neither screenshot is timestamped, so they don't show which came first.
+
 This demonstrated longest-prefix-match behavior in practice. The specific 10.10.30.0/24 route overrides the competing default routes for traffic destined for the protected enclave.
 
-## Authorized Management Access
+### Authorized Management Access
 
-After correcting the route, the Windows management workstation successfully reached Fedora over SSH.
+After correcting the route, Victus successfully reached ENVY over SSH.
 
 ```powershell
 Test-NetConnection 10.10.30.100 -Port 22
@@ -145,15 +199,17 @@ Result:      Success
 
 ![Authorized SSH test](evidence/02-windows-authorized-ssh-test.png)
 
-A full SSH login was then completed from the authorized management workstation.
+A full SSH login was then completed from Victus.
 
 ![Successful SSH login](evidence/03-windows-successful-ssh-login.png)
 
-## Host-Level Management Restriction
+*(The `who` output in screenshot 03 also lists `pts/2` from `10.10.20.10` at 19:57. That is the Yoda session in [Finding 5](#finding-5--a-pre-rule-ssh-session-from-yoda-survived-about-two-and-a-half-days).)*
 
-The ER605 separates the VLANs, but on this firmware the LAN-to-LAN rule form selects whole networks (Source Network / Destination Network), not individual hosts. The ACL table shows the difference: rule 3 (LAN->LAN) uses network selectors, while rules 1 and 2 (LAN->WAN) use IP groups (screenshot 24). So the per-host SSH restriction between the two internal networks went on Fedora, in firewalld.
+### Host-Level Management Restriction
 
-A rich rule was created to permit SSH only from the authorized Windows management host:
+The ER605 separates the VLANs, but on this firmware the LAN-to-LAN rule form selects whole networks (Source Network / Destination Network), not individual hosts. The ACL table shows the difference: rule 3 (LAN->LAN) uses network selectors, while rules 1 and 2 (LAN->WAN) use IP groups (screenshot 24). So the per-host SSH restriction between the two internal networks went on ENVY, in firewalld.
+
+A rich rule was created to permit SSH only from Victus:
 
 ```bash
 sudo firewall-cmd --permanent \
@@ -171,13 +227,15 @@ The final active and permanent configuration retained the specific /32 SSH allow
 
 ![Fedora firewall management rule](evidence/04-fedora-firewall-management-rule.png)
 
-The saved (`--permanent`) configuration at the end of the original build is shown below. It confirms the SSH rule persisted, and it also shows the Fedora Workstation default `1025-65535` TCP/UDP port range, which I removed during the October 5 re-test.
+*(Incomplete: the same output lists `wlo1` as a zone interface ([Finding 2](#finding-2--the-enclave-host-was-dual-homed-on-the-household-network)) and shows `samba-client` and TCP/UDP `1025-65535` open ([Finding 4](#finding-4--the-ssh-lockdown-was-the-only-inbound-restriction)).)*
+
+I captured the saved (`--permanent`) configuration on October 5, before changing it. It confirms the SSH rule persisted, and it also shows the Fedora Workstation default `1025-65535` TCP/UDP port range, which I removed in Finding 4.
 
 ![Fedora permanent firewall policy before tightening](evidence/34-firewall-permanent-before-tightening.png)
 
-## Unauthorized Management Test
+### Unauthorized Management Test
 
-Yoda remained on the same 10.10.20.0/24 management network but was not included in the Fedora SSH allow rule.
+Yoda remained on the same 10.10.20.0/24 management network but was not included in ENVY's SSH allow rule.
 
 Testing TCP/22 from Yoda:
 
@@ -191,15 +249,15 @@ returned a blocked result:
 No route to host
 ```
 
-while the authorized Windows management workstation continued to connect successfully.
+while Victus continued to connect successfully.
 
-Despite the wording, this is not a routing failure. The reverse-path test earlier showed Yoda could reach Fedora, so the route existed. Traffic that matches no allow rule in the firewalld zone is rejected with an ICMP "prohibited" message, and Linux reports that ICMP error to `nc` as "No route to host". A silent drop would have produced a timeout instead, as in the enclave-isolation test below.
+Despite the wording, this is not a routing failure. The route exists: Yoda connected to ENVY on port 27500 during the October 5 re-test (screenshot 37). Traffic that matches no allow rule in the firewalld zone is rejected with an ICMP "prohibited" message, and Linux reports that ICMP error to `nc` as "No route to host". A silent drop would have produced a timeout instead, as in the enclave-isolation test below.
 
 ![Unauthorized Yoda SSH blocked](evidence/05-yoda-unauthorized-ssh-blocked.png)
 
-## Enclave Isolation Test
+### Enclave Isolation Test
 
-The protected Fedora host was tested against Yoda in the management network:
+ENVY was tested against Yoda in the management network:
 
 ```bash
 ping -c 3 10.10.20.10
@@ -215,32 +273,34 @@ This validated that VLAN30 could not initiate traffic into the management LAN.
 
 ![Enclave to management blocked](evidence/06-enclave-to-management-blocked.png)
 
-## Final Validation Matrix
+### Final Validation Matrix
 
 | Source | Destination | Test | Result |
 |---|---|---|---|
-| Windows 10.10.20.102 | Fedora 10.10.30.100 | TCP/22 | Allowed |
-| Windows 10.10.20.102 | Fedora 10.10.30.100 | SSH login | Allowed |
-| Yoda 10.10.20.10 | Fedora 10.10.30.100 | TCP/22 | Blocked |
-| Fedora 10.10.30.100 | Yoda 10.10.20.10 | ICMP | Blocked |
-| Fedora 10.10.30.100 | Yoda 10.10.20.10 | TCP/22 | Blocked |
-| Fedora 10.10.30.100 | ER605 10.10.30.1 | ICMP | Allowed |
+| Victus 10.10.20.102 | ENVY 10.10.30.100 | TCP/22 | Allowed |
+| Victus 10.10.20.102 | ENVY 10.10.30.100 | SSH login | Allowed |
+| Yoda 10.10.20.10 | ENVY 10.10.30.100 | TCP/22 | Blocked |
+| ENVY 10.10.30.100 | Yoda 10.10.20.10 | ICMP | Blocked |
+| ENVY 10.10.30.100 | Yoda 10.10.20.10 | TCP/22 | Blocked |
+| ENVY 10.10.30.100 | ER605 10.10.30.1 | ICMP | Allowed (not captured in NET-008) |
 
-## Troubleshooting Performed
+*(Superseded by the [Validation Matrix](#validation-matrix) in the Summary. This matrix had no rows for household or internet egress, ENVY's Wi-Fi interface, or ports other than 22; see Findings 2–4.)*
+
+### Troubleshooting Performed
 
 This lab included several distinct troubleshooting points:
 
 - Verified host addressing and gateway reachability.
 - Confirmed inter-VLAN path behavior with ping, route inspection, and TCP testing.
-- Distinguished `Connection refused` from a timeout.
-- Identified incorrect Windows route selection on a dual-homed system.
+- Distinguished `Connection refused` from a timeout. (Not captured; see Reverse-Path Validation.)
+- Identified incorrect Windows route selection on a dual-homed system. (Not captured; see Windows Routing Issue.)
 - Corrected the path with a specific route to 10.10.30.0/24.
 - Verified source address and interface selection after the route change.
 - Restricted SSH access with a host-specific firewalld rich rule.
 - Re-tested both authorized and unauthorized management sources.
-- Reloaded firewalld and validated that the permanent configuration matched the intended active state.
+- Reloaded firewalld and validated that the permanent configuration matched the intended active state. *(Superseded: on October 5 the saved configuration still had `1025-65535` and `samba-client`; see Finding 4.)*
 
-## Key Concepts Demonstrated
+### Key Concepts Demonstrated
 
 - VLAN segmentation
 - Inter-VLAN routing
@@ -255,29 +315,17 @@ This lab included several distinct troubleshooting points:
 - Persistent route configuration
 - Persistent firewall configuration
 
-## Evidence
+*(Least privilege, defense in depth, and the persistent firewall configuration were incomplete as of October 2; see Findings 2–4.)*
 
-1. [Windows route to enclave](evidence/01-windows-route-to-enclave.png)
-2. [Windows authorized SSH test](evidence/02-windows-authorized-ssh-test.png)
-3. [Windows successful SSH login](evidence/03-windows-successful-ssh-login.png)
-4. [Fedora firewall management rule](evidence/04-fedora-firewall-management-rule.png)
-5. [Yoda unauthorized SSH blocked](evidence/05-yoda-unauthorized-ssh-blocked.png)
-6. [Enclave to management blocked](evidence/06-enclave-to-management-blocked.png)
-7. [ER605 VLAN30 to Lab deny rule](evidence/07-er605-vlan30-to-lab-deny-rule.png)
-8. [Fedora permanent firewall policy before tightening](evidence/34-firewall-permanent-before-tightening.png)
-9. [Windows persistent enclave route](evidence/09-windows-persistent-enclave-route.png)
-
-Re-test evidence (October 5, 2026) is shown inline below, numbered 10–41. Patch window evidence is numbered 43–57; 42 (disk space) is in the patch window text. Numbers 15, 16, 21, 23 and 29 were not kept as screenshots; their terminal output is in [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt).
-
-## Result
+### Result
 
 NET-008 established a protected systems enclave on VLAN30 with a controlled management path from the lab network.
 
-The final design allows the designated Windows management workstation to administer the Fedora enclave host over SSH, blocks another management-side host from the same service, and prevents the enclave from initiating connections back into the management LAN.
+The final design allows Victus to administer ENVY over SSH, blocks another management-side host from the same service, and prevents the enclave from initiating connections back into the management LAN.
 
 The ER605 keeps the enclave off the management LAN, and firewalld on the host limits who can manage it.
 
-After the October 5 re-test, the enclave host is single-homed, has no household or internet egress, resolves DNS only through the ER605, and accepts no inbound connection except SSH from the authorized workstation.
+*(Superseded: this is the October 2 result. The current state is in the [Summary](#summary--current-state).)*
 
 ## Re-Test and Fixes — October 5, 2026
 
@@ -288,11 +336,11 @@ Terminal output I didn't capture as screenshots is in [`remediation-terminal-out
 ### Finding 1 — VLAN30 DHCP handed out a nonexistent DNS server
 
 **Expected:** VLAN30 clients resolve names through the ER605.
-**Observed:** Fedora's only lab resolver was `10.10.31.1`, an address on no configured subnet.
-**Investigated:** `resolvectl status` showed the resolver; `nmcli -f DHCP4 device show` showed it arrived from the ER605 (`dhcp_server_identifier = 10.10.30.1`, `domain_name_servers = 10.10.31.1`). Before changing anything, `dig @10.10.30.1` confirmed the ER605 answers DNS on VLAN30.
+**Observed:** ENVY's only lab resolver was `10.10.31.1`, an address on no configured subnet.
+**Investigated:** `resolvectl status` showed the resolver; `nmcli -f DHCP4 device show` showed it arrived from the ER605 (`dhcp_server_identifier = 10.10.30.1`, `domain_name_servers = 10.10.31.1`; output §1). Before changing anything, `dig @10.10.30.1` confirmed the ER605 answers DNS on VLAN30.
 **Root cause:** a one-digit typo I made in the VLAN30 DHCP pool's Primary DNS field when I created VLAN30 in NET-007.
-**Change:** I changed Primary DNS to `10.10.30.1` and renewed Fedora's lease with `nmcli connection up`.
-**Validation:** `resolvectl` reports `10.10.30.1`, and `resolvectl query` resolves through the lab interface.
+**Change:** I changed Primary DNS to `10.10.30.1` and renewed ENVY's lease with `nmcli connection up`.
+**Validation:** `resolvectl` reports `10.10.30.1`, and `resolvectl query` resolves through the lab interface (output §4).
 
 ![ER605 VLAN30 DHCP DNS before](evidence/18-er605-vlan30-dhcp-dns-before.png)
 
@@ -302,22 +350,22 @@ Terminal output I didn't capture as screenshots is in [`remediation-terminal-out
 
 ![resolvectl after DHCP fix](evidence/20-resolvectl-after-dhcp-fix.png)
 
-DNS seemed fine during the original build because Fedora was also resolving over its Wi-Fi interface. That's Finding 2.
+DNS seemed fine during the original build because ENVY was also resolving over its Wi-Fi interface. That's Finding 2.
 
 ### Finding 2 — The enclave host was dual-homed on the household network
 
 **Expected:** the enclave host's only network path is VLAN30 through the ER605.
-**Observed:** `ip route` showed Fedora's Wi-Fi interface on `192.168.1.0/24` with its own default route. The household network was directly attached, bypassing every ER605 control in both directions.
+**Observed:** `ip route` showed ENVY's Wi-Fi interface on `192.168.1.0/24` with its own default route (output §2). The household network was directly attached, bypassing every ER605 control in both directions.
 **Root cause:** I left the host's Wi-Fi connected when I moved it into the enclave. I didn't include host interfaces in the original test plan.
 **Change:** `sudo nmcli radio wifi off`. NetworkManager persists the radio state across reboots.
-**Validation:** `ip route` shows only the VLAN30 interface, and `resolvectl` shows `wlo1` with no scopes and no default route.
+**Validation:** `ip route` shows only the VLAN30 interface (output §3), and `resolvectl` shows `wlo1` with no scopes and no default route (screenshot 20).
 
 The SSH restriction was not exposed through this path: both interfaces were in the same firewalld zone, so the `/32` rule applied to Wi-Fi too.
 
 ### Finding 3 — VLAN30 had household and internet egress through the ER605
 
 **Expected:** like the rest of the lab, the enclave cannot reach the household network or the internet.
-**Observed:** with Wi-Fi off, `ping 192.168.1.1` and `ping 1.1.1.1` from Fedora both succeeded. A TTL of 63 from the household router confirmed the traffic was routed by the ER605.
+**Observed:** with Wi-Fi off, `ping 192.168.1.1` and `ping 1.1.1.1` from ENVY both succeeded (screenshot 22, output §5). A TTL of 63 from the household router confirmed the traffic was routed by the ER605.
 **Investigated:** the ER605 egress rules (`DENY_Lab_to_Household`, `DENY_Lab_to_Any`) match the source group `GRP_LabNet`, which contained only `LabNet` (`10.10.20.0/24`).
 **Root cause:** when I added VLAN30 in NET-007, I gave it a rule blocking the management LAN but never added it to the lab group the existing egress rules use.
 **Change:** I added an address object `Enclave` (`10.10.30.0/24`) to `GRP_LabNet`. I didn't add or edit any ACL rules. Any rule keyed on the group now covers both subnets.
@@ -346,7 +394,7 @@ The SSH restriction was not exposed through this path: both interfaces were in t
 **Expected:** the enclave accepts only management SSH from the authorized workstation.
 **Observed:** the saved firewall zone still carried the Fedora Workstation default of TCP and UDP `1025-65535` open. `ss -tuln` showed a listener on `0.0.0.0:27500`, and Yoda, which is refused on port 22, connected to port 27500.
 **Investigated:** `ss -tlnp` identified the owner as `passimd`, the fwupd firmware-metadata sharing service. It's legitimate, but its job is sharing files with neighboring hosts, and an enclave host shouldn't do that.
-**Change:** I masked the service with `systemctl mask --now passim.service`. Then I removed the high-port ranges and `samba-client` from the saved zone, checked the saved config, and applied it with `firewall-cmd --reload`.
+**Change:** I masked the service with `systemctl mask --now passim.service`. Then I removed the high-port ranges and `samba-client` from the saved zone, checked the saved config, and applied it with `firewall-cmd --reload`. `samba-client` allows inbound NetBIOS traffic used for browsing Windows file shares, which the enclave host doesn't need.
 **Validation:** port 27500 has no listener. Yoda is rejected on TCP 5355 (LLMNR), a service that is still listening, which proves the firewall alone now blocks it.
 
 ![Fedora listening sockets before](evidence/35-fedora-listening-sockets-before.png)
@@ -363,18 +411,20 @@ The SSH restriction was not exposed through this path: both interfaces were in t
 
 ![Yoda rejected on a listening high port](evidence/41-yoda-high-port-rejected-after.png)
 
-### Finding 5 — A pre-rule SSH session from Yoda survived for three days
+### Finding 5 — A pre-rule SSH session from Yoda survived about two and a half days
 
-**Expected:** after the `/32` rule, the only SSH session on Fedora comes from Victus (`10.10.20.102`).
-**Observed:** one SSH session on Fedora reported its source as `10.10.20.10`, which is Yoda.
-**Investigated:** I checked Victus's addresses to rule out a duplicate IP (Victus was `10.10.20.102`). Then `who` showed two sessions: one from Victus, and one from Yoda opened at 19:57 on October 2, before I applied the `/32` rule that evening.
+**Expected:** after the `/32` rule, the only SSH session on ENVY comes from Victus (`10.10.20.102`).
+**Observed:** one SSH session on ENVY reported its source as `10.10.20.10`, which is Yoda. I didn't keep that first `$SSH_CONNECTION` output as a screenshot. Screenshot 12 shows the session: `who` lists `pts/2` from `10.10.20.10`, opened 2026-10-02 19:57.
+**Investigated:** I checked Victus's addresses to rule out a duplicate IP (Victus was `10.10.20.102`, screenshot 10). I ran `$SSH_CONNECTION` again in my Victus session, which showed `10.10.20.102 51412 10.10.30.100 22` (screenshot 11). Then `who` showed two remote sessions: `pts/3` from Victus and `pts/2` from Yoda (screenshot 12). The Yoda session also appears in the October 2 `who` output in screenshot 03. New connections from Yoda are rejected (screenshot 13), so this session was opened before the rule took effect; I didn't record the time I applied the rule.
 **Root cause:** firewalld tracks established connections, so tightening the rules does not terminate sessions that are already open. A plain `firewall-cmd --reload` preserves them.
-**Change:** the stale session was closed. No firewall change was needed.
-**Validation:** `who` shows only the authorized session, and a new connection from Yoda is rejected.
+**Change:** the stale session was closed. No firewall change was needed. Not captured: how I closed it.
+**Validation:** `who` at 08:27 on October 5 shows only the Victus session (screenshot 14), and a new connection from Yoda is rejected (screenshot 13). Screenshot 13 has the same output as screenshot 05 and isn't timestamped.
+
+The session was open from 19:57 on October 2 until the morning of October 5, about two and a half days.
 
 ![Victus IPv4 addresses](evidence/10-victus-ipv4-addresses.png)
 
-![Fedora sees session from Yoda](evidence/11-fedora-sees-source-10.10.20.10.png)
+![Second check: ENVY sees the Victus session](evidence/11-fedora-sees-source-victus-10.10.20.102.png)
 
 ![Active sessions](evidence/12-fedora-who-active-sessions.png)
 
@@ -382,23 +432,16 @@ The SSH restriction was not exposed through this path: both interfaces were in t
 
 ![Sessions after reconnect](evidence/14-fedora-who-after-reconnect.png)
 
-### Post-Remediation Validation Matrix
+### Re-Test Results
 
-| Source | Destination | Test | Before Oct 5 | After Oct 5 |
-|---|---|---|---|---|
-| Windows 10.10.20.102 | Fedora | TCP/22 SSH | Allowed | Allowed |
-| Yoda 10.10.20.10 | Fedora | New TCP/22 | Rejected | Rejected |
-| Yoda 10.10.20.10 | Fedora | TCP 27500 / 5355 | **Open** | Rejected |
-| Fedora | Yoda 10.10.20.10 | ICMP | Blocked | Blocked |
-| Fedora | Household 192.168.1.1 | ICMP | **Allowed** | Blocked |
-| Fedora | Internet 1.1.1.1 | ICMP | **Allowed** | Blocked |
-| Fedora | ER605 resolver | DNS | **Wrong resolver** | Resolves |
+The before/after results are in the [Validation Matrix](#validation-matrix) in the Summary. After the fixes, ENVY still can't reach Yoda:
 
 ![Enclave to management blocked](evidence/33-enclave-to-management-blocked.png)
 
 ### Lessons
 
 - **Test around the design, not just the design.** My original matrix only covered the paths the policy was built for. Every finding was on a path I hadn't written a test for: a second interface, an egress direction, a high port.
+- **Read the evidence I already have.** The original build screenshots already showed three of the five problems: screenshot 04 lists `wlo1` in the firewall zone (Finding 2) and `1025-65535` open (Finding 4), and the `who` output in screenshot 03 lists `pts/2` from `10.10.20.10` (Finding 5). I captured them without catching them.
 - **Group-based policy needs group maintenance.** Adding a subnet is incomplete until it is in every group the existing rules depend on.
 - **A working symptom can hide a broken dependency.** DNS worked over Wi-Fi, so the broken lab resolver went unnoticed for a week.
 - **Firewall changes don't revoke existing sessions.** After tightening access, check for and close sessions that predate the change.
@@ -411,18 +454,18 @@ The SSH restriction was not exposed through this path: both interfaces were in t
 
 ## Patch Window — October 5, 2026
 
-With egress blocked, Fedora can't reach its update mirrors. I opened a temporary, narrow path, patched, closed it, and re-tested.
+With egress blocked, ENVY can't reach the Fedora update mirrors. I opened a temporary, narrow path, patched, closed it, and re-tested.
 
 **Plan and rollback before starting**
 
 - The temporary rule must let VLAN30 reach the internet without reopening the household network.
 - If the update broke something: `sudo dnf history undo last`.
 - If the ER605 change misbehaved: delete the one rule I added.
-- Before the reboot: confirm console access to ENVY in case SSH didn't come back.
+- Before the reboot: confirm console access to ENVY in case SSH didn't come back. Not captured: the console-access check itself.
 
 **Pre-change checks**
 
-- Disk: 222 GB free on `/` (6% used).
+- Disk: 222 GB free on `/` (6% used); output §6.
 - HTTPS to `mirrors.fedoraproject.org` timed out: `curl: (28) Connection timed out`, status `000`. That's the protocol dnf uses, so it's a better test than ping.
 
 ![HTTPS blocked before the window](evidence/43-pre-change-https-egress-blocked.png)
@@ -462,7 +505,7 @@ A dry run (`sudo dnf upgrade --refresh --assumeno`) showed 150 packages and a 1 
 
 ![dnf complete](evidence/51-dnf-upgrade-complete.png)
 
-dnf also replaced an update that GNOME Software had queued in the background back when the host still had Wi-Fi.
+dnf invalidated a pending offline update that GNOME Software (`dnf5daemon-server`) had queued.
 
 **Closing the window**
 
@@ -493,13 +536,78 @@ I deleted the temporary rule before rebooting, since nothing else needed interne
 
 One change I didn't expect: the default route's metric went from 100 to 20100. After boot, NetworkManager's connectivity check couldn't reach the internet, so it marked the connection as limited and added a 20000 penalty to that route. With only one default route, traffic still goes to `10.10.30.1`. The host noticed for itself that it has no internet.
 
-The window was open for about 50 minutes, and the update was the only thing that used it.
+I didn't capture timestamps for opening and closing the window. The update was the only thing I used it for.
 
-## Status
-**PROVEN**
+## Evidence Index
 
-Allowed and denied management paths were tested from both sides of the boundary, and both the route and the firewall policy were made persistent. The October 5 re-test found and fixed five problems; see [GAPS.md](../../_control/GAPS.md).
+"Output §n" is a section of [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt). Numbers 15, 16, 21, 23, 29 and 42 were not kept as screenshots.
+
+| # | File | What it shows |
+|---|---|---|
+| 01 | `01-windows-route-to-enclave.png` | Victus `Find-NetRoute`: `10.10.30.0/24` via `10.10.20.1` on Ethernet 2, source `10.10.20.102`, RouteMetric 256 |
+| 02 | `02-windows-authorized-ssh-test.png` | Victus `Test-NetConnection` to ENVY TCP/22 succeeds from `10.10.20.102` over Ethernet 2 |
+| 03 | `03-windows-successful-ssh-login.png` | SSH login from Victus; October 2 `who` also lists `pts/2` from `10.10.20.10` (Finding 5) |
+| 04 | `04-fedora-firewall-management-rule.png` | ENVY runtime zone (original build): `/32` SSH rule, no `ssh` service; also `wlo1`, `samba-client`, `1025-65535` |
+| 05 | `05-yoda-unauthorized-ssh-blocked.png` | Yoda to ENVY TCP/22: `No route to host` (firewalld reject) |
+| 06 | `06-enclave-to-management-blocked.png` | ENVY to Yoda: ICMP 100% loss, TCP/22 timeout |
+| 07 | `07-er605-vlan30-to-lab-deny-rule.png` | ER605 ACL table with `DENY_VLAN30_TO_LAB` |
+| 08 | — | Not used; the permanent firewall view is 34 |
+| 09 | `09-windows-persistent-enclave-route.png` | Victus route with RouteMetric 5, and TCP/22 to ENVY succeeding |
+| 10 | `10-victus-ipv4-addresses.png` | Victus: Ethernet 2 `10.10.20.102`, Wi-Fi `192.168.1.18`; no duplicate of `10.10.20.10` |
+| 11 | `11-fedora-sees-source-victus-10.10.20.102.png` | `$SSH_CONNECTION` in the Victus session: `10.10.20.102 51412 10.10.30.100 22` |
+| 12 | `12-fedora-who-active-sessions.png` | `who`: `pts/3` from Victus (Oct 2 22:59), `pts/2` from Yoda (Oct 2 19:57) |
+| 13 | `13-yoda-new-ssh-rejected.png` | Yoda new TCP/22 to ENVY: `No route to host` (not timestamped) |
+| 14 | `14-fedora-who-after-reconnect.png` | `who` at Oct 5 08:27: only the Victus session remains |
+| 15 | not kept | Output §2: `ip route` with VLAN30 and Wi-Fi default routes |
+| 16 | not kept | Output §3: Wi-Fi off, VLAN30 routes only |
+| 17 | `17-dig-er605-vlan30-resolver-test.png` | `dig @10.10.30.1` answers (Oct 5 08:30:44 CDT) |
+| 18 | `18-er605-vlan30-dhcp-dns-before.png` | VLAN30 DHCP Primary DNS `10.10.31.1` |
+| 19 | `19-er605-vlan30-dhcp-dns-after.png` | VLAN30 DHCP Primary DNS `10.10.30.1` |
+| 20 | `20-resolvectl-after-dhcp-fix.png` | `resolvectl`: `10.10.30.1` on the VLAN30 link; `wlo1` no scopes, no default route |
+| 21 | not kept | Output §4: lease renewed, `resolvectl query` through the lab link |
+| 22 | `22-fedora-to-household-ALLOWED.png` | ENVY to `192.168.1.1`: 3/3 replies, TTL 63 |
+| 23 | not kept | Output §5: ENVY to `1.1.1.1`: 3/3 replies |
+| 24 | `24-er605-acl-rules-before.png` | ER605 egress rules keyed on `GRP_LabNet` |
+| 25 | `25-er605-ip-addresses-before.png` | ER605 addresses: `LabNet` and `Household`, no VLAN30 object |
+| 26 | `26-er605-ip-groups-before.png` | `GRP_LabNet` = `LabNet` only |
+| 27 | `27-er605-ip-address-enclave-added.png` | `Enclave` (`10.10.30.0/24`) address added |
+| 28 | `28-er605-grp-labnet-after.png` | `GRP_LabNet` = `LabNet,Enclave` |
+| 29 | not kept | No copy of its output is in the repo |
+| 30 | `30-fedora-to-household-blocked-after.png` | ENVY to `192.168.1.1`: 100% loss |
+| 31 | `31-fedora-to-internet-blocked-after.png` | ENVY to `1.1.1.1`: 100% loss |
+| 32 | `32-dns-still-works-egress-blocked.png` | Non-cached lookup still resolves with egress blocked |
+| 33 | `33-enclave-to-management-blocked.png` | ENVY to Yoda: 100% loss after the fixes |
+| 34 | `34-firewall-permanent-before-tightening.png` | Saved zone before Finding 4: `samba-client`, `1025-65535`, `/32` rule |
+| 35 | `35-fedora-listening-sockets-before.png` | `ss -tuln`: listener on `0.0.0.0:27500` |
+| 36 | `36-port-27500-owner.png` | Port 27500 owned by `passimd` |
+| 37 | `37-yoda-reaches-27500-before.png` | Yoda to ENVY 27500: open |
+| 38 | `38-passim-masked-27500-closed.png` | `passim` masked; no listener on 27500 |
+| 39 | `39-firewall-permanent-tightened.png` | Saved zone after: `dhcpv6-client`, `/32` rule, no ports |
+| 40 | `40-firewall-runtime-after-reload.png` | Runtime zone after reload matches; only the VLAN30 interface |
+| 41 | `41-yoda-high-port-rejected-after.png` | Yoda to ENVY 5355: `No route to host` (rejected) |
+| 42 | not kept | Output §6: `df -h /`, 222G available, 6% used |
+| 43 | `43-pre-change-https-egress-blocked.png` | HTTPS to the mirror site times out before the window |
+| 44 | `44-er605-grp-enclave-created.png` | `GRP_Enclave` created |
+| 45 | `45-er605-acl-add-form.png` | ACL form with the optional ID field |
+| 46 | `46-er605-temp-allow-rule-order.png` | `TEMP_ALLOW_Enclave_Updates` at ID 2 |
+| 47 | `47-window-open-household-still-blocked.png` | Household still blocked with the window open |
+| 48 | `48-window-open-https-egress-allowed.png` | Mirror site answers `302` with the window open |
+| 49 | `49-dnf-upgrade-dry-run.png` | Dry run: 150 packages, 1 GiB |
+| 50 | `50-dnf-upgrade-kernel-in-transaction.png` | Kernel `7.2.8-200.fc44` in the transaction |
+| 51 | `51-dnf-upgrade-complete.png` | dnf complete; pending offline transaction invalidated |
+| 52 | `52-er605-temp-rule-removed.png` | Temporary rule deleted; ACL back to three rules |
+| 53 | `53-window-closed-https-egress-blocked.png` | HTTPS to the mirror site times out after the window |
+| 54 | `54-post-reboot-new-kernel.png` | Running kernel `7.2.8-200.fc44.x86_64` |
+| 55 | `55-post-reboot-wifi-off-single-homed.png` | Wi-Fi `disabled`; only VLAN30 routes; default metric 20100 |
+| 56 | `56-post-reboot-firewall-and-passim.png` | Zone after reboot; `passim` masked |
+| 57 | `57-post-reboot-dns-works.png` | Non-cached lookup resolves after reboot |
+| — | `remediation-terminal-output.txt` | Output for 15, 16, 21, 23 and 42, plus the DHCP options for Finding 1 |
 
 ## Public Evidence Notes
 
 The screenshots used in this project were reviewed before publication. Public evidence excludes passwords, tokens, public IP addresses, MAC addresses, private keys, and other unnecessary identifiers. RFC1918 lab addresses are retained because they are part of the documented network design.
+
+## Status
+**PROVEN**
+
+Allowed and denied management paths were tested from both sides of the boundary, and both the route and the firewall policy were made persistent. The October 5 re-test found and fixed five problems; see [GAPS.md](../../_control/GAPS.md). A few October 2 steps were not captured and are marked "Not captured" above.

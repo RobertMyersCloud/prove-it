@@ -1,5 +1,7 @@
-NET-002 — UDP Closed-Port / ICMP Packet Summary
+NET-002 â€” UDP Closed-Port / ICMP Packet Summary
 Source: TShark extraction from original local capture (raw PCAP retained locally)
 
+Frame	IP Source	Src Port	IP Destination	Dst Port	IP Proto	ICMP Type	ICMP Code	Info
+(Frame 2 is ICMP carrying the original UDP header; comma-separated fields list the outer ICMP packet value first, then the quoted original packet.)
 1	10.10.20.101	34871	10.10.20.10	9090	17			34871 -> 9090 Len=11
 2	10.10.20.10,10.10.20.101	34871	10.10.20.101,10.10.20.10	9090	1,17	3	3	Destination unreachable (Port unreachable)

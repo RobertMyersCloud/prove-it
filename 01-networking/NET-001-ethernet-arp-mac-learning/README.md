@@ -61,6 +61,8 @@ sudo ip neigh del 10.10.20.10 dev enp0s20f0u3u3c2
 
 A subsequent lookup returned no entry, forcing address resolution on the next communication attempt.
 
+I didn't capture the neighbor-table checks on ENVY as screenshots. The before/after neighbor state in this README is from my terminal session and isn't backed by a published screenshot. The packet capture (no cached entry means ENVY has to broadcast an ARP request first) is the published proof that resolution happened.
+
 ## Methodology
 1. Verified and removed ENVY's existing Yoda neighbor entry.
 2. Configured SG108E Port 2 (Yoda) for ingress and egress mirroring.
@@ -91,6 +93,12 @@ This allowed Victus to observe frames entering and leaving Yoda's port without b
 
 The full capture also contained unrelated/background traffic. The controlled event was identified by correlating the generated action, timing, source/destination addresses, and protocol sequence.
 
+The display filter in screenshot 01 shows seven frames, not four:
+
+- **Frame 120** (55.16 s) is the ER605 asking who has `10.10.20.101`. It came about a minute before the test and isn't part of the event.
+- **Frames 253–256** are the controlled event in the table above.
+- **Frames 268–269** (123.01 s, about 5 seconds after the ping) are Yoda sending a unicast ARP request straight to ENVY's MAC ("Who has 10.10.20.101? Tell 10.10.20.10"), and ENVY answering. Yoda was re-verifying the entry it already had for ENVY. Because the request went to ENVY's MAC and not to broadcast, Yoda already held ENVY's MAC at that point. I didn't capture Yoda's neighbor table, so I can't show the entry state directly.
+
 ## ARP Request Analysis
 ![ARP request frame analysis](evidence/screenshots/02-arp-request-frame-analysis.png)
 
@@ -115,7 +123,7 @@ The reply differs from the request:
 - target IP is `10.10.20.101`
 - target MAC is ENVY's MAC
 
-The request must be broadcast because the destination MAC is unknown. The reply can be unicast because Yoda learned ENVY's sender information from the request.
+The request must be broadcast because the destination MAC is unknown. The reply can be unicast because the request carried ENVY's MAC and IP as the sender fields, so Yoda knew where to send it. Frames 268–269 back this up: about 5 seconds later Yoda sent its own ARP check directly to ENVY's MAC.
 
 ## Neighbor-State Validation
 After the exchange and successful ping, ENVY's neighbor table contained Yoda as `REACHABLE`.
@@ -153,7 +161,7 @@ These are separate functions.
 
 The host needs the ARP result to construct the Ethernet frame. The switch uses learned MAC-to-port information to forward frames.
 
-The SG108E firmware used here does not expose its dynamic MAC table through the web interface, so this artifact does not claim direct inspection of that table.
+The SG108E firmware used here does not expose its dynamic MAC table through the web interface, so this artifact does not claim direct inspection of that table. The "MAC Learning" in the title refers to the concept. I couldn't observe the switch learning MAC-to-port entries; that part is inferred from how a Layer 2 switch works, not shown in the evidence.
 
 ## Encapsulation Analysis
 ![ICMP encapsulation analysis](evidence/screenshots/04-icmp-encapsulation-analysis.png)
@@ -169,11 +177,11 @@ Ethernet II
 Ethernet carries the source/destination MAC addresses. IPv4 carries source `10.10.20.101`, destination `10.10.20.10`, and protocol ICMP (`1`). ICMP identifies an Echo Request, Type `8`, Code `0`.
 
 ## Passive Monitoring Validation
-Victus was connected to mirror destination Port 4. IPv4 and IPv6 bindings were disabled on its Ethernet capture interface during the clean capture.
+Victus was connected to mirror destination Port 4. IPv4 and IPv6 bindings were disabled on its Ethernet capture interface during the clean capture. I didn't capture that adapter setting as a screenshot.
 
 The sensor therefore did not need to participate as an IPv4/IPv6 endpoint to observe the mirrored Layer 2 traffic. The switch copied Port 2 ingress and egress frames to Port 4 for passive analysis.
 
-This is the same way a network sensor or IDS tap is usually connected.
+This is one common way to feed a network sensor; a hardware tap is the other.
 
 ## Evidence Handling and Sanitization
 

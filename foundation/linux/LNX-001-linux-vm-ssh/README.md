@@ -1,7 +1,7 @@
 # LNX-001 — Linux VM Build and SSH Administration
 
 ## Hiring Claim
-After reviewing this artifact, a hiring manager has evidence that I can build a Linux server VM in Hyper-V, put it on the network, and administer it remotely over SSH, with proof from both the client and the server side.
+After reviewing this artifact, a hiring manager has evidence that I can build a Linux server VM in Hyper-V, put it on the network, and connect to and verify it over SSH, with proof from both the client and the server side.
 
 ## Employer Skills Demonstrated
 - Hyper-V Generation 2 VM build
@@ -9,7 +9,7 @@ After reviewing this artifact, a hiring manager has evidence that I can build a 
 - Ubuntu Server installation
 - Linux network configuration checks
 - DNS and external connectivity validation
-- SSH remote administration from Windows
+- SSH remote access from Windows
 - SSH listener and log verification
 
 ## Objective
@@ -33,6 +33,8 @@ Because I was installing Linux on a Generation 2 Hyper-V VM, I changed the Secur
 
 I installed Ubuntu Server with a normal non-root account and included OpenSSH Server.
 
+In the installer, `eth0` got `172.31.77.143/20` from DHCP on the Default Switch (screenshot 03). For storage I used the LVM layout: `/boot/efi` (1.049G fat32) and `/boot` (2.000G ext4) as partitions on the 30 GB disk, with `/` as a 13.472G ext4 logical volume in `ubuntu-vg` and 13.472G of the volume group left free (screenshot 04).
+
 I did not patch the VM after installation. Patching was not the objective. The goal was to build the system, establish networking, reach the outside network, and administer it over SSH.
 
 ## Local Validation
@@ -43,6 +45,8 @@ After installation I verified the system locally:
 - Hostname: `prove-final-01`
 - Interface: `eth0`
 - IPv4 address: `172.31.74.93/20`
+
+That is a different address from the one the installer showed (`172.31.77.143`). The Default Switch DHCP address changed after installation.
 
 I also confirmed TCP port 22 was listening on IPv4 and IPv6.
 
@@ -56,13 +60,13 @@ I tested connectivity to `www.google.com`. The VM resolved the name to a public 
 
 From Windows on Victus I connected to `prove-final-01` over SSH and verified the user, hostname, and interface again from inside the remote session.
 
-The Linux SSH logs recorded the successful connection from the Hyper-V host-side address `172.31.64.1`.
+The Linux SSH logs recorded two accepted password logins for `robert-myers` from the Hyper-V host-side address `172.31.64.1` (source ports `62450` at 16:53:47 and `62527` at 16:57:30).
 
 That gives evidence from both sides: Windows established the session, and Linux recorded the authentication.
 
 ## Evidence Review
 
-During my final evidence review I noticed the package did not include proof of external connectivity. I had tested it but hadn't captured it. I went back to the VM and captured the validation (screenshot 07).
+The external connectivity proof (screenshot 07) comes from the same local console session as screenshot 05. Both show the same `valid_lft 86242sec` and `ssh.service` as `inactive (dead)`, and 07 continues with the `ping www.google.com` after the `ss` check. So the ping ran before the SSH session, not afterward. During my final evidence review I noticed the package didn't include it, and I added it from that session's output.
 
 Doing the work and proving the work are two different things.
 
@@ -80,7 +84,7 @@ Doing the work and proving the work are two different things.
 | `01-hyperv-vm-build.png` | Generation 2 VM creation |
 | `02-hyperv-secure-boot.png` | Microsoft UEFI Certificate Authority template |
 | `03-installer-network-config.png` | Installer network configuration |
-| `04-installer-lvm-layout.png` | LVM storage layout |
+| `04-installer-lvm-layout.png` | LVM storage layout (disk ID redacted) |
 | `05-local-linux-validation.png` | Local user, hostname, interface, SSH listener |
 | `06-remote-ssh-validation.png` | SSH session from Windows and Linux log entry |
 | `07-external-connectivity.png` | DNS resolution and 6/6 ICMP replies |
@@ -100,7 +104,9 @@ Doing the work and proving the work are two different things.
 ![External Connectivity](evidence/screenshots/07-external-connectivity.png)
 
 ## Evidence Handling
-VM MAC addresses and the MAC-derived IPv6 link-local addresses are replaced with `[VM-MAC]` and `[VM-LINK-LOCAL]`. My username and host names are left visible.
+VM MAC addresses and the MAC-derived IPv6 link-local addresses are replaced with `[VM-MAC]` and `[VM-LINK-LOCAL]`. The virtual disk identifier in the installer storage screen (screenshot 04) is covered with `[DISK-ID]`. My username and host names are left visible.
 
 ## Status
 **PROVEN**
+
+The build, addressing, DNS and outbound ping, and SSH login are each shown in screenshots, and the SSH login is confirmed from both sides. The remote session ran read-only checks; I didn't make configuration changes over SSH in this project.

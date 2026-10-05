@@ -18,6 +18,7 @@ default via 10.10.20.1 dev vmbr0 proto kernel onlink
 10.10.20.0/24 dev vmbr0 proto kernel scope link src 10.10.20.10 
 
 === PROXMOX BRIDGE CONFIGURATION ===
+[NOTE: this block is incomplete; the complete vmbr0 stanza is in PROXMOX BRIDGE CONFIGURATION - DETAIL at the end of this file]
 auto lo
 iface lo inet loopback
 iface nic0 inet manual

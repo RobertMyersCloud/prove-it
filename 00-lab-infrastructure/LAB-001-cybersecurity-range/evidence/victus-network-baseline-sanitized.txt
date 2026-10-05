@@ -155,7 +155,7 @@ Approximate round trip times in milli-seconds:
 
 
 ComputerName     : google.com
-RemoteAddress    : 172.253.135.102
+RemoteAddress    : [PUBLIC-IP]
 RemotePort       : 443
 InterfaceAlias   : Wi-Fi
 SourceAddress    : 192.168.1.18

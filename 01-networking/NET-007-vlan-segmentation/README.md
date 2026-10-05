@@ -1,7 +1,9 @@
 # NET-007 — VLAN Segmentation and Policy Enforcement
 
+> **Correction — October 5, 2026.** The isolation in this project covers one direction of one path: VLAN 30 to the lab LAN (`10.10.20.0/24`). When I re-tested in NET-008, VLAN 30 could still reach the household network and the internet, because I never added it to `GRP_LabNet`, the group the existing egress rules use ([NET-008 Finding 3](../NET-008-protected-systems-enclave/README.md#finding-3--vlan30-had-household-and-internet-egress-through-the-er605)). The VLAN 30 DHCP pool I set up here also handed out `10.10.31.1` as Primary DNS, a typo ([NET-008 Finding 1](../NET-008-protected-systems-enclave/README.md#finding-1--vlan30-dhcp-handed-out-a-nonexistent-dns-server)). Both are fixed in NET-008.
+
 ## Hiring Claim
-This artifact demonstrates that I can design and implement VLAN segmentation, validate tagged and untagged switch behavior, verify DHCP and Layer-3 inter-VLAN routing, distinguish Layer-2 neighbor behavior from routed communication, and enforce intentional isolation with a LAN-to-LAN ACL.
+After reviewing this artifact, a hiring manager has evidence that I can design and implement VLAN segmentation, configure tagged and untagged switch ports, verify DHCP and Layer-3 inter-VLAN routing, distinguish Layer-2 neighbor behavior from routed communication, and block VLAN 30 from reaching the lab LAN with a LAN-to-LAN ACL.
 
 ## Skills Demonstrated
 - 802.1Q VLAN configuration
@@ -59,7 +61,10 @@ Subnet Mask: 255.255.255.0
 DHCP Server: Enabled
 DHCP Range: 10.10.30.100-10.10.30.199
 Default Gateway: 10.10.30.1
+Primary DNS: 10.10.31.1   (typo; fixed to 10.10.30.1 in NET-008)
 ```
+
+The DHCP settings are shown in NET-008 [evidence 18](../NET-008-protected-systems-enclave/evidence/18-er605-vlan30-dhcp-dns-before.png) (as I set them here) and [evidence 19](../NET-008-protected-systems-enclave/evidence/19-er605-vlan30-dhcp-dns-after.png) (after the fix). Both were captured October 5, 2026; I didn't capture the form when I created VLAN 30.
 
 The existing VLAN 1 / `10.10.20.0/24` network remained intact. The ER605 carried VLAN 30 as tagged traffic while retaining VLAN 1 as untagged traffic on the lab uplink.
 
@@ -109,6 +114,8 @@ ER605 Port 3
 10.10.30.1
 ```
 
+The address and gateway show the path works end to end. The tagging and the ER605 port in this diagram come from the configuration; see [Evidence Limits](#evidence-limits).
+
 ## Inter-VLAN Routing Before Policy
 VLAN separation created a separate Layer-2 broadcast domain, but it did not automatically prevent Layer-3 communication.
 
@@ -155,9 +162,12 @@ Direction: LAN->LAN
 Source Network: VLAN30
 Destination Network: LAN
 Effective Time: Any
+States: New, Established, Invalid, Related
 ```
 
 ![VLAN30 to LAN ACL](evidence/screenshots/05-er605-vlan30-to-lab-acl.png)
+
+The form's States field is set to `New, Established, Invalid, Related`. This project doesn't test how the ER605 applies that setting to reply traffic. NET-008 shows that SSH started from the lab LAN to VLAN 30 still works with this rule in place.
 
 This screenshot shows the rule as it was being created. The saved rule in the ER605 policy table is shown in [NET-008 evidence 07](../NET-008-protected-systems-enclave/evidence/07-er605-vlan30-to-lab-deny-rule.png).
 
@@ -212,21 +222,12 @@ Can the network route the packet?
 Should security policy permit the packet?
 ```
 
-## Troubleshooting Method
+## Troubleshooting Record
 
-```text
-1. Verify host addressing
-2. Verify connected routes
-3. Verify local gateway reachability
-4. Verify switch VLAN membership
-5. Verify access-port PVID
-6. Verify inter-VLAN route selection
-7. Inspect Layer-2 neighbor behavior
-8. Apply policy
-9. Retest VLAN gateway reachability
-10. Retest inter-VLAN reachability
-11. Confirm the route still exists
-```
+**Expected:** VLAN 30 should not reach the lab LAN.
+**Observed:** with the VLAN in place and no ACL, ENVY pinged Yoda with 2 of 2 replies at TTL 63, routed via `10.10.30.1` (screenshot 01). The VLAN alone did not stop routed traffic.
+**Change:** I created `DENY_VLAN30_TO_LAB` on the ER605 (screenshot 05).
+**Validation:** ENVY still reached `10.10.30.1` (2 of 2), Yoda failed (0 of 2, 100% loss), and the route via `10.10.30.1` was still there (screenshot 02). The loss came from the policy, not from routing or the VLAN.
 
 ## Evidence Index
 
@@ -236,8 +237,14 @@ Should security policy permit the packet?
 | `02-vlan30-acl-isolation-after-policy.png` | Gateway health, retained route, and blocked inter-VLAN traffic |
 | `03-sg108e-vlan30-membership.png` | Tagged uplink and untagged ENVY access-port membership |
 | `04-sg108e-port3-pvid30.png` | ENVY ingress traffic assigned to VLAN 30 |
-| `05-er605-vlan30-to-lab-acl.png` | LAN-to-LAN policy responsible for isolation |
+| `05-er605-vlan30-to-lab-acl.png` | LAN-to-LAN policy that blocks VLAN 30 from the lab LAN |
 | `vlan-segmentation-findings.txt` | Concise evidence-derived findings |
+
+## Evidence Limits
+- **Baseline and DHCP cutover:** I didn't capture ENVY at `10.10.20.101`, the SG108E with 802.1Q disabled, or the lease change from `10.10.20.101` to `10.10.30.100`. Screenshot 01 shows ENVY at `10.10.30.100/24` afterward; the route-table change isn't captured.
+- **ER605 Port 3:** the diagram shows the SG108E uplink on ER605 Port 3. No screenshot here shows the ER605 port.
+- **802.1Q tagging:** tagging is shown as switch configuration only (screenshot 03: VLAN 30 tagged on Port 1, untagged on Port 3). I didn't capture a tagged frame on the wire.
+- **DHCP settings:** shown only in NET-008 evidence 18 and 19, captured October 5, 2026.
 
 ## Evidence Handling
 Hardware addresses visible in terminal evidence were redacted before publication. No credentials, authentication secrets, or unrelated raw packet captures are included.
@@ -269,8 +276,10 @@ Layer-3 routing
 Security policy
 ```
 
-Each stage was tested on its own, and the final isolation has before-and-after evidence.
+Each stage was tested on its own, and the VLAN 30 to lab LAN block has before-and-after evidence.
 
 ## Status
 
 **PROVEN**
+
+VLAN 30, inter-VLAN routing, and the VLAN 30 to lab LAN block are proven with before-and-after tests. Household and internet egress from VLAN 30 were not covered here; they were found open and closed in NET-008 (October 5, 2026).

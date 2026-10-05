@@ -1,4 +1,4 @@
-NET-007 — VLAN Segmentation and Policy Enforcement Findings
+NET-007 â€” VLAN Segmentation and Policy Enforcement Findings
 
 Objective:
 Create a second Layer-2 broadcast domain, validate inter-VLAN routing, and then enforce intentional isolation between the new VLAN and the existing lab network.

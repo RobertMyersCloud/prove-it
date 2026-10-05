@@ -27,14 +27,14 @@ Temporary route:
 203.0.113.10/32 via 10.10.20.1 dev enp0s20f0u3u3c2
 
 The configured next hop 10.10.20.1 was REACHABLE at Layer 2.
-The real next-hop MAC is redacted from public evidence as [ER605 MAC].
+The real next-hop MAC is redacted from public evidence as [ER605-MAC].
 
 Two ICMP echo requests were transmitted.
 No echo replies were received.
 
 Conclusion:
 A valid local route and reachable next hop do not prove end-to-end reachability.
-Route selection was demonstrated locally; the absence of return traffic localized the observed failure beyond the proven local route-selection and next-hop reachability.
+Route selection was demonstrated locally. The absence of return traffic does not localize a failure: 203.0.113.10 is a documentation address (RFC 5737) and lab traffic to the internet is blocked by DENY_Lab_to_Any, so no reply was expected. (Corrected October 5, 2026.)
 
 Restoration:
 Temporary /32 routes were removed.

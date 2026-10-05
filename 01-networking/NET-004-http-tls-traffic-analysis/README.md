@@ -1,7 +1,7 @@
 # NET-004 — HTTP/TLS Traffic Analysis
 
 ## Hiring Claim
-This artifact demonstrates that I can trace an HTTPS transaction from TCP establishment through TLS negotiation, certificate validation, encrypted application traffic, and teardown, then troubleshoot a controlled TLS handshake failure.
+> After reviewing this artifact, a hiring manager has evidence that I can trace an HTTPS transaction from the TCP handshake through TLS 1.3 negotiation, certificate validation, encrypted HTTP, and teardown, and tell a server-side TLS rejection apart from a client-side certificate rejection.
 
 ## Skills Demonstrated
 - HTTPS/TLS traffic analysis
@@ -12,6 +12,14 @@ This artifact demonstrates that I can trace an HTTPS transaction from TCP establ
 - TLS troubleshooting
 - `curl`, OpenSSL, `tcpdump`, and TShark
 - Privacy-conscious evidence publication
+
+## Environment
+| Host | OS / TLS library | Address used | Tests |
+|---|---|---|---|
+| ENVY | Fedora, curl 8.18.0 with OpenSSL | `192.168.1.3` (household Wi-Fi) | Successful HTTPS transaction, capture, certificate check, server-side failure (September 27, 2026) |
+| Victus | Windows 11, `curl.exe` 8.21.0 with Schannel | `192.168.1.18` (household Wi-Fi) | Client-side certificate rejection (October 5, 2026) |
+
+At the time of the original test, ENVY was dual-homed on the lab network and household Wi-Fi (see NET-003 and NET-005). Screenshot 01 shows the connection established `from 192.168.1.3 port 47580`, so this traffic left through the household Wi-Fi side, not the lab.
 
 ## Scenario
 ENVY/Fedora generated a controlled HTTPS transaction to `example.com`. The original capture is retained locally as `evidence/raw/https-example-full.pcap`; public evidence contains only focused screenshots and TShark-derived summaries.
@@ -38,10 +46,14 @@ The controlled conversation was isolated as frames 206–228. The public machine
 206 Client -> Server  SYN
 207 Server -> Client  SYN/ACK
 208 Client -> Server  ACK
-209 Client -> Server  TLS ClientHello, SNI=example.com
-211 Server -> Client  TLS handshake response
-217+                  TLS 1.3 encrypted records
-226 Client -> Server  FIN/ACK
+209      Client -> Server  TLS ClientHello, SNI=example.com
+211-217  Server -> Client  Server handshake flight: ServerHello and Change Cipher Spec
+                           (211), then encrypted handshake records (213, 215, 217)
+219      Client -> Server  Change Cipher Spec + client Finished (encrypted)
+220      Client -> Server  Encrypted record, consistent with the HTTP GET
+222-223  Server -> Client  Encrypted records after the request (session tickets and
+                           HTTP response, per curl's output)
+226      Client -> Server  FIN/ACK
 227 Server -> Client  FIN/ACK
 228 Client -> Server  ACK
 ```
@@ -49,6 +61,8 @@ The controlled conversation was isolated as frames 206–228. The public machine
 ![TLS packet lifecycle](evidence/screenshots/02-tls-packet-lifecycle.png)
 
 HTTPS therefore operates above an established TCP connection rather than replacing TCP.
+
+Correction (October 5, 2026): I originally treated frame 217 onward as application traffic. In TLS 1.3, everything the server sends after ServerHello is encrypted, including EncryptedExtensions, Certificate, CertificateVerify, and Finished. Wireshark can't see inside those records, so it labels them `Application Data`, which is what frame 217 shows in screenshot 02. Frames 211, 213, 215, and 217 carry 1448 + 1448 + 1448 + 740 = 5,084 bytes from the server before the client's next record, and curl's verbose output in screenshot 01 lists ServerHello, Change Cipher Spec, Encrypted Extensions, Certificate, CERT verify, and Finished all arriving before the client sends its own Finished. That fits 211-217 being the server's handshake flight, not HTTP data. The roles I gave frames 219-223 come from their order and direction lined up against curl's output; I can't read the encrypted contents to confirm them.
 
 ## TLS ClientHello
 Frame 209 was extracted to `evidence/tls-clienthello-summary.txt`.
@@ -85,12 +99,14 @@ This is kept separate from the ClientHello's offered capabilities. A ClientHello
 ## Certificate and Identity Validation
 ![TLS certificate and SNI validation](evidence/screenshots/03-tls-certificate-sni-validation.png)
 
+Screenshot 03 is from a separate `openssl s_client` session. Its first line shows `Connecting to 104.20.23.154`, the other `example.com` address, while the curl transaction and the capture used `172.66.147.243`. That session also got `Peer certificate: CN=example.com` and `Verification: OK`. The second command in 03 connects to `example.com:443` by name, and the screenshot doesn't show which address it used. Its issuer and validity dates match what curl reported in screenshot 01.
+
 The validation evidence includes successful verification, subject/issuer information, validity dates, SAN coverage for `example.com` and `*.example.com`, and negotiated TLS/cipher information.
 
 HTTPS identity validation therefore depends on more than reaching an IP address; the hostname used by the client must be compatible with the certificate identity.
 
 ## Encrypted Application Traffic
-After negotiation, the capture shows TLS 1.3 records carrying application data.
+After the handshake, the HTTP request and response travel as encrypted TLS 1.3 records. In the capture these look the same as the encrypted handshake records: Wireshark labels both `Application Data`.
 
 A passive capture can still expose metadata such as addresses, ports, timing, TCP flags, record sizes, direction, and some handshake metadata such as SNI. The ordinary packet capture does not expose the HTTP content once it is carried as encrypted TLS application data.
 
@@ -128,7 +144,7 @@ A working route and open TCP port do not guarantee a successful HTTPS transactio
 
 The test above failed on the server side. To see the other kind of failure, where the server finishes its part and the client refuses the certificate, I ran a second test from Victus (Windows). Fedora no longer has internet access after the NET-008 changes.
 
-The target was `wrong.host.badssl.com`, a public test site. That server presents a valid certificate for `*.badssl.com`, but a wildcard only covers one label, so it matches `host.badssl.com` and not `wrong.host.badssl.com`.
+The target was `wrong.host.badssl.com`, a public test site. badssl.com documents this host as set up so the certificate it serves doesn't cover that name. I didn't capture the certificate's contents, so I'm relying on the site's description and the error below, not on certificate evidence of my own.
 
 **Step 1: normal request**
 
@@ -166,12 +182,12 @@ The only change was `-k`, which skips certificate verification. With it, the TLS
 |---|---|---|
 | Name sent | `wrong.example` to example.com's address | `wrong.host.badssl.com` |
 | What happened | Server sent a `handshake_failure` alert and closed | Server sent its certificate; the client refused it |
-| Certificate received | No | Yes |
+| Certificate received | No | Yes (implied by the name error) |
 | curl exit code | `35`, TLS connect error | `60`, certificate verification error |
-| Works with `-k` | No, the server still refuses | Yes, `200 OK` |
+| Works with `-k` | Not tested | Yes, `200 OK` |
 | Where to fix it | Server: it doesn't serve that name | Name or certificate: the cert doesn't cover that name |
 
-The exit code is the quickest tell. `35` means the handshake never finished. `60` means it got far enough for the client to judge the certificate and say no.
+The exit code is the quickest tell. `35` is curl's TLS connect error; here it came from the server's alert before any certificate arrived. `60` means the certificate was received and failed verification.
 
 ## Relationship to Earlier Proof
 ```text
@@ -185,6 +201,12 @@ NET-004  HTTPS / TLS / certificates / encrypted application traffic
 ```
 
 NET-004 applies the TCP lifecycle from NET-002 to a real encrypted application protocol and follows the DNS work established in NET-003.
+
+## Evidence Limits
+- Screenshots 03 and 04 are cropped. The `openssl s_client` connect command that produced the top of 03 and the full curl command for 04 (including `--resolve`) aren't shown; only their output is. The `--resolve` override is shown by curl's `Added wrong.example:443:104.20.23.154 to DNS cache` line.
+- I didn't run the `wrong.example` test with `-k`.
+- I didn't capture packets for either failure test, and I didn't capture the `wrong.host.badssl.com` certificate.
+- Frame roles after the ClientHello are based on direction, size, and order lined up with curl's output, not on decrypted contents.
 
 ## Evidence Handling
 The original capture contains substantially more traffic than the controlled HTTPS conversation and remains local under `evidence/raw/`, which is excluded from version control.
@@ -205,5 +227,7 @@ Public packet evidence is TShark-derived and limited to the controlled conversat
 
 ## Status
 **PROVEN**
+
+The successful transaction is backed by curl output, a TShark lifecycle extraction, and a ClientHello extraction, and both failure types are shown in curl output. The limits above are about cropped commands and frame roles I inferred, not missing results.
 
 A complete HTTPS transaction was traced through transport establishment, TLS negotiation, certificate validation, encrypted application traffic, and teardown. Observable ClientHello metadata was extracted, endpoint-versus-network visibility was distinguished, and two TLS failures were diagnosed above the TCP layer: a server-side SNI rejection and a client-side certificate name rejection.

@@ -1,7 +1,7 @@
 # NET-002 — TCP vs UDP Traffic Analysis
 
 ## Hiring Claim
-After reviewing this artifact, a hiring manager has evidence that I can establish and analyze TCP and UDP traffic, interpret socket state, explain TCP sequence and acknowledgment behavior, identify connection establishment and teardown, and troubleshoot UDP behavior using packet evidence and ICMP errors.
+After reviewing this artifact, a hiring manager has evidence that I can establish and analyze TCP and UDP traffic, interpret socket state, explain TCP sequence and acknowledgment behavior, identify connection establishment and teardown, and show with packet captures how UDP behaves when sent to an open port versus a closed port, including the ICMP Port Unreachable a closed port returns.
 
 ## Employer Skills Demonstrated
 - TCP/IP traffic analysis
@@ -30,15 +30,17 @@ The testing focused on behavior observable on the wire and in operating-system s
 | TL-SG108E | Layer 2 switching | Lab switch |
 | netcat (`nc`) | Controlled TCP/UDP client and server | Application traffic |
 | `ss` | Socket-state validation | Linux |
-| `tcpdump` | Packet capture and analysis | ENVY |
-| TShark | Public evidence extraction | Victus |
+| `tcpdump` | Packet capture and analysis; PCAPs written to `~/net-002-evidence/` on ENVY (screenshots 09, 10) | ENVY |
+| TShark | Public evidence extraction | Victus (the TShark runs aren't shown in the screenshots) |
 
 ## Ephemeral-Port Baseline
-ENVY's configured IPv4 ephemeral-port range was measured directly:
+ENVY's configured IPv4 ephemeral-port range was:
 
 ```text
 32768 60999
 ```
+
+I didn't capture that check as a screenshot.
 
 During testing ENVY selected:
 
@@ -48,14 +50,14 @@ During testing ENVY selected:
 | UDP open-port | `46681` |
 | UDP closed-port | `34871` |
 
-All three are inside ENVY's measured range.
+All three are inside that range.
 
 # Part 1 — TCP
 
 ## TCP Socket State and Four-Tuple
 Yoda ran a controlled TCP service on `10.10.20.10:8080`.
 
-Once ENVY connected, Yoda retained the listening socket while creating a separate established socket for the client.
+Screenshot 01 shows two `ss` checks on Yoda: `ss -ltnp` with a `LISTEN` socket on `10.10.20.10:8080`, and `ss -tanp` with an `ESTAB` socket from `10.10.20.101:54000`.
 
 ![Yoda LISTEN and ESTAB sockets](evidence/screenshots/01-yoda-listen-and-established-sockets.png)
 
@@ -72,7 +74,7 @@ ENVY showed the corresponding `ESTAB` socket:
 
 ![ENVY established TCP socket](evidence/screenshots/02-envy-tcp-established-socket.png)
 
-The server's listening socket remains available for additional clients while a separate established socket represents this connection.
+**Correction (October 5, 2026):** I originally wrote that Yoda kept the listening socket alongside the established socket and that the listener stayed available for more clients. Screenshot 01 doesn't show that. The `LISTEN` line belongs to `nc` pid `525246` and the `ESTAB` line belongs to `nc` pid `526231`, so the two outputs came from different `nc` runs. The `ss -tanp` output shows no `LISTEN` line at all. Plain `nc -l` accepts one connection and stops listening, so this screenshot does not show `LISTEN` and `ESTAB` at the same time.
 
 ## TCP Three-Way Handshake
 The live packet capture showed:
@@ -212,12 +214,14 @@ After the one-shot client completed, ENVY had no matching persistent UDP client 
 ## No UDP Transport Acknowledgment
 The open-port capture contained the datagram sent from ENVY to Yoda but no UDP transport-layer acknowledgment returned from Yoda.
 
+The capture filter for this test was `host 10.10.20.10 and udp port 9090`, so it only shows that no UDP traffic came back on port 9090. It would not have recorded an ICMP reply or other traffic from Yoda.
+
 An application can implement its own acknowledgments, retries, or reliability on top of UDP. UDP itself does not provide TCP-style connection establishment, sequence-number reliability, transport acknowledgments, retransmission, ordered delivery, or FIN teardown.
 
 # Part 3 — UDP to a Closed Port
 
 ## Closed-Port Test
-The UDP/9090 listener was stopped and the port was no longer bound.
+I stopped the UDP/9090 listener before this test. I didn't capture an `ss` check after stopping it. The empty `ss -lunp | grep ':9090'` in screenshot 08 was run before the listener started, not after it stopped. The ICMP Port Unreachable below is what shows nothing was bound to UDP/9090 on Yoda when the datagram arrived.
 
 ENVY then sent `CLOSED-UDP` plus a newline, producing an 11-byte UDP datagram.
 
@@ -266,7 +270,7 @@ The ICMP response is not a UDP acknowledgment; it is a separate network-layer er
 | Client source port | `54000` | `46681` open / `34871` closed |
 | IP protocol number | TCP `6` | UDP `17` |
 | Connection handshake | SYN → SYN/ACK → ACK | None |
-| Server socket state | `LISTEN` + `ESTAB` | `UNCONN` |
+| Server socket state | `LISTEN`, then `ESTAB` (separate `nc` runs) | `UNCONN` |
 | Client established state | `ESTAB` | None in one-shot test |
 | Open-port payload | 10 bytes | 10 bytes |
 | Transport acknowledgment | ACK advanced to `11` | None |
@@ -288,7 +292,7 @@ Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots r
 ## Evidence Index
 | Evidence | Purpose |
 |---|---|
-| `01-yoda-listen-and-established-sockets.png` | Yoda retaining LISTEN while creating ESTAB |
+| `01-yoda-listen-and-established-sockets.png` | Yoda TCP/8080 `LISTEN` socket and an `ESTAB` socket, from different `nc` runs |
 | `02-envy-tcp-established-socket.png` | ENVY TCP client socket and four-tuple |
 | `03-tcp-handshake-data-ack-sequence.png` | TCP establishment, payload sequence range, ACK behavior |
 | `04-yoda-received-tcp-payload.png` | Application data received by Yoda |
@@ -304,4 +308,4 @@ Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots r
 ## Status
 **PROVEN**
 
-TCP and UDP behavior was predicted, generated on the physical lab network, validated through operating-system socket state and packet evidence, compared directly, and documented with focused public evidence.
+TCP and UDP behavior was generated on the physical lab network, validated through operating-system socket state and packet evidence, compared directly, and documented with focused public evidence.
