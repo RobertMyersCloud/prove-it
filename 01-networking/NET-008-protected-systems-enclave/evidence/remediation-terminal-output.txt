@@ -1,0 +1,63 @@
+NET-008 re-validation - terminal output not captured as screenshots
+Date: 2026-10-05
+Host: fedora (10.10.30.100, VLAN30 enclave host)
+
+Output below is copied verbatim from the session terminal.
+One line was removed from the nmcli output: dhcp_client_identifier,
+which contains the adapter MAC address.
+
+------------------------------------------------------------------
+1. DHCP-supplied resolver (before the ER605 fix)
+------------------------------------------------------------------
+$ nmcli -f DHCP4 device show enp0s20f0u3u3c2   (excerpt)
+DHCP4.OPTION[4]:   dhcp_server_identifier = 10.10.30.1
+DHCP4.OPTION[5]:   domain_name = lan
+DHCP4.OPTION[6]:   domain_name_servers = 10.10.31.1
+DHCP4.OPTION[8]:   ip_address = 10.10.30.100
+DHCP4.OPTION[27]:  routers = 10.10.30.1
+
+------------------------------------------------------------------
+2. Routing table before Wi-Fi was disabled (dual-homed)
+------------------------------------------------------------------
+$ ip route
+default via 10.10.30.1 dev enp0s20f0u3u3c2 proto dhcp src 10.10.30.100 metric 100
+default via 192.168.1.1 dev wlo1 proto dhcp src 192.168.1.3 metric 600
+10.10.30.0/24 dev enp0s20f0u3u3c2 proto kernel scope link src 10.10.30.100 metric 100
+192.168.1.0/24 dev wlo1 proto kernel scope link src 192.168.1.3 metric 600
+
+------------------------------------------------------------------
+3. Wi-Fi radio disabled; routing table after
+------------------------------------------------------------------
+$ sudo nmcli radio wifi off
+$ ip route
+default via 10.10.30.1 dev enp0s20f0u3u3c2 proto dhcp src 10.10.30.100 metric 100
+10.10.30.0/24 dev enp0s20f0u3u3c2 proto kernel scope link src 10.10.30.100 metric 100
+
+------------------------------------------------------------------
+4. Lease renewed after the ER605 DHCP fix; resolution via lab path
+------------------------------------------------------------------
+$ sudo nmcli connection up "Wired connection 1"
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/4)
+
+$ resolvectl query example.com
+example.com: 2606:4700:10::6814:179a           -- link: enp0s20f0u3u3c2
+             2606:4700:10::ac42:93f3           -- link: enp0s20f0u3u3c2
+             172.66.147.243                    -- link: enp0s20f0u3u3c2
+             104.20.23.154                     -- link: enp0s20f0u3u3c2
+
+-- Information acquired via protocol DNS in 20.4ms.
+-- Data is authenticated: no; Data was acquired via local or encrypted transport: no
+-- Data from: network
+
+------------------------------------------------------------------
+5. Internet egress from VLAN30 before VLAN30 joined GRP_LabNet
+------------------------------------------------------------------
+$ ping -c 3 -W 2 1.1.1.1
+PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
+64 bytes from 1.1.1.1: icmp_seq=1 ttl=51 time=18.2 ms
+64 bytes from 1.1.1.1: icmp_seq=2 ttl=51 time=21.1 ms
+64 bytes from 1.1.1.1: icmp_seq=3 ttl=51 time=14.9 ms
+
+--- 1.1.1.1 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2001ms
+rtt min/avg/max/mdev = 14.936/18.076/21.114/2.523 ms

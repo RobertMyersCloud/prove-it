@@ -57,7 +57,7 @@ Yoda ran a controlled TCP service on `10.10.20.10:8080`.
 
 Once ENVY connected, Yoda retained the listening socket while creating a separate established socket for the client.
 
-![Yoda LISTEN and ESTAB sockets](evidence/screenshots/03-yoda-listen-and-established-sockets.png)
+![Yoda LISTEN and ESTAB sockets](evidence/screenshots/01-yoda-listen-and-established-sockets.png)
 
 ENVY selected source port `54000`, producing this four-tuple:
 
@@ -107,7 +107,7 @@ relative ack 1
 
 The SYN consumes one sequence number, so Yoda acknowledged ENVY's initial sequence number plus one.
 
-![TCP handshake, data, and ACK sequence](evidence/screenshots/04-tcp-handshake-data-ack-sequence.png)
+![TCP handshake, data, and ACK sequence](evidence/screenshots/03-tcp-handshake-data-ack-sequence.png)
 
 ## TCP Application Data and Acknowledgment
 ENVY sent `PROVE-TCP` plus a newline, producing a 10-byte payload.
@@ -132,7 +132,7 @@ ACK `11` means bytes through sequence 10 were received and byte 11 is expected n
 
 Yoda displayed the payload:
 
-![Yoda received TCP payload](evidence/screenshots/05-yoda-received-tcp-payload.png)
+![Yoda received TCP payload](evidence/screenshots/04-yoda-received-tcp-payload.png)
 
 A later one-byte transmission advanced ENVY's relative sequence range from `11` to `12`, and Yoda acknowledged `12`.
 
@@ -159,7 +159,7 @@ ACK
 seq 13, ack 2 -------------------------->
 ```
 
-![TCP FIN teardown sequence](evidence/screenshots/06-tcp-fin-teardown-sequence.png)
+![TCP FIN teardown sequence](evidence/screenshots/05-tcp-fin-teardown-sequence.png)
 
 Yoda combined its acknowledgment of ENVY's FIN with its own FIN.
 
@@ -288,12 +288,12 @@ Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots r
 ## Evidence Index
 | Evidence | Purpose |
 |---|---|
+| `01-yoda-listen-and-established-sockets.png` | Yoda retaining LISTEN while creating ESTAB |
 | `02-envy-tcp-established-socket.png` | ENVY TCP client socket and four-tuple |
-| `03-yoda-listen-and-established-sockets.png` | Yoda retaining LISTEN while creating ESTAB |
-| `04-tcp-handshake-data-ack-sequence.png` | TCP establishment, payload sequence range, ACK behavior |
-| `05-yoda-received-tcp-payload.png` | Application data received by Yoda |
+| `03-tcp-handshake-data-ack-sequence.png` | TCP establishment, payload sequence range, ACK behavior |
+| `04-yoda-received-tcp-payload.png` | Application data received by Yoda |
+| `05-tcp-fin-teardown-sequence.png` | Three-segment FIN/ACK teardown |
 | `06-envy-tcp-teardown-state.png` | ENVY `TIME-WAIT` after client-initiated close |
-| `06-tcp-fin-teardown-sequence.png` | Three-segment FIN/ACK teardown |
 | `07-yoda-udp-9090-listener.png` | UDP socket in `UNCONN` state |
 | `08-yoda-received-udp-payload.png` | UDP payload received by Yoda |
 | `09-udp-single-datagram-no-session.png` | One UDP datagram and no persistent client session |

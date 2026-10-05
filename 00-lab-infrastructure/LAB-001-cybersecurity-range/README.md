@@ -1,5 +1,8 @@
 # LAB-001 — Isolated Cybersecurity Range Architecture & Trust Boundary
 
+## Hiring Claim
+After reviewing this artifact, a hiring manager has evidence that I can document a network's starting state, define a trust boundary between two networks, and validate with tests that the boundary enforces what the design says it should.
+
 ## Objective
 
 Document and validate the starting architecture of my isolated cybersecurity lab before beginning the networking, security operations, and DFIR proof-of-work projects.
@@ -273,5 +276,7 @@ This baseline will be used for future projects involving:
 
 ---
 
-**Status:** Baseline validated  
-**Date:** 2026-09-26
+## Status
+**PROVEN**
+
+Baseline validated 2026-09-26.

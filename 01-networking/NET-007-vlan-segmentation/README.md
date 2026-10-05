@@ -159,6 +159,8 @@ Effective Time: Any
 
 ![VLAN30 to LAN ACL](evidence/screenshots/05-er605-vlan30-to-lab-acl.png)
 
+This screenshot shows the rule as it was being created. The saved rule in the ER605 policy table is shown in [NET-008 evidence 07](../NET-008-protected-systems-enclave/evidence/07-er605-vlan30-to-lab-deny-rule.png).
+
 ## Post-Policy Validation
 After the ACL was applied, the VLAN 30 gateway remained reachable:
 
