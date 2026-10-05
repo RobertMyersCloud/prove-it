@@ -154,6 +154,71 @@ An attempted public-IP lookup from Yoda timed out during name resolution. I didn
 
 The security control was left intact. ENVY was used for the public-side comparison instead of weakening isolation simply to complete the experiment.
 
+# Re-test — October 5, 2026
+
+## Why I Re-tested
+Two parts of this project were weaker than the claim:
+
+- Screenshot 04 was a summary I typed, not command output.
+- The traceroute ran from Yoda, which has no internet egress, so it stopped at the ER605 and never reached the CGNAT boundary.
+
+## Host
+Victus, over household Wi-Fi. ENVY was the outer observation host originally, but its Wi-Fi was turned off in NET-008 and it now sits only in the VLAN 30 enclave.
+
+## Traceroute to the CGNAT Gateway
+```text
+tracert -d -h 2 1.1.1.1
+
+  1     9 ms     6 ms     7 ms  192.168.1.1
+  2    13 ms     9 ms    13 ms  100.67.28.1
+```
+
+![Traceroute to CGNAT gateway](evidence/screenshots/06-victus-tracert-cgnat-hop.png)
+
+- Hop 1 is the AX55, which also shows the trace went out over household Wi-Fi and not the lab.
+- Hop 2 is `100.67.28.1`, inside `100.64.0.0/10`. It's the same address the AX55 lists as its default gateway (screenshot 05).
+
+I limited the trace to two hops with `-h 2`. Hops after that are the ISP's public routers, which aren't needed here and aren't mine to publish.
+
+## Internet-Visible Address, Masked by the Command
+```text
+(Invoke-RestMethod https://api.ipify.org) -replace '^(\d+)\..*$','$1.x.x.x'
+132.x.x.x
+```
+
+![Masked public IP](evidence/screenshots/07-victus-public-ip-masked.png)
+
+The command asks an outside service which IPv4 my traffic arrives from, then keeps only the first octet. The first octet is `132`, so the Internet-visible address is outside `100.64.0.0/10` and can't be the AX55's WAN address. The full public address isn't shown or stored in the evidence.
+
+This replaces the typed comparison in screenshot 04.
+
+## AX55 WAN, Same Session
+```text
+Status:          Connected
+IP Address:      100.67.28.24
+Subnet Mask:     255.255.252.0
+Default Gateway: 100.67.28.1
+```
+
+![AX55 WAN status](evidence/screenshots/08-ax55-wan-current.png)
+
+The WAN address and gateway hadn't changed since screenshot 03. The ISP DNS servers are redacted as `[ISP-DNS-1]` and `[ISP-DNS-2]`, the same as in screenshot 03.
+
+## Re-test Findings
+Three independent sources agree:
+
+| Source | Shows |
+|---|---|
+| Traceroute (data plane) | The first router past the AX55 is `100.67.28.1`, in CGNAT space |
+| AX55 status page | The AX55's WAN address is `100.67.28.24/22`, in CGNAT space |
+| Outside lookup | Traffic reaches the internet from an address starting `132.`, outside CGNAT space |
+
+The household network's traffic leaves the AX55 into carrier shared address space and appears on the internet from a different, public address. That's the CGNAT boundary.
+
+## Re-test Evidence Limits
+- The translation itself still isn't observed. It happens on carrier equipment I can't see into.
+- The public-IP comparison uses only the first octet. That's enough to rule out `100.64.0.0/10` and the AX55's WAN address, but it doesn't identify the public address.
+
 ## Evidence Boundaries
 
 The collected evidence directly establishes:
@@ -178,9 +243,9 @@ Accordingly, this artifact does not claim packet-level observation of every poss
 
 ### Evidence Limits
 
-- Screenshot 04 is an echo-style summary I printed, not raw command output. The `ip route get` line is real output, but the AX55 WAN address, the `100.64.0.0/10` range, and `match: NO` are values I typed in. The command I used to look up the Internet-visible IPv4 isn't shown.
+- Screenshot 04 is an echo-style summary I printed, not raw command output. The `ip route get` line is real output, but the AX55 WAN address, the `100.64.0.0/10` range, and `match: NO` are values I typed in. The command I used to look up the Internet-visible IPv4 isn't shown. The October 5 re-test replaces this with command output (screenshot 07).
 - No NAT translation was captured at either router, so the ER605 and AX55 NAT boundaries are inferred from addressing and routing.
-- Nothing past the ER605 was identified by traceroute.
+- Nothing past the ER605 was identified by traceroute from Yoda. The October 5 re-test traced from the household side and identified the CGNAT gateway (screenshot 06).
 
 ## Evidence Index
 
@@ -191,6 +256,9 @@ Accordingly, this artifact does not claim packet-level observation of every poss
 | `03-ax55-cgnat-wan-address.png` | AX55 LAN/WAN boundary and RFC6598 shared-space WAN |
 | `04-cgnat-wan-vs-public-ip.png` | AX55 WAN versus redacted Internet-visible IPv4 |
 | `05-ax55-routing-table-cgnat-upstream.png` | AX55 connected networks and CGNAT-side default route |
+| `06-victus-tracert-cgnat-hop.png` | Re-test: traceroute with hop 2 at the CGNAT gateway |
+| `07-victus-public-ip-masked.png` | Re-test: Internet-visible IPv4, first octet only, by command |
+| `08-ax55-wan-current.png` | Re-test: AX55 WAN status in the same session |
 | `nat-cgnat-findings.txt` | Concise evidence-derived findings |
 
 ## Evidence Handling
@@ -201,6 +269,8 @@ Identifiers that don't matter to the findings were redacted from the screenshots
 - 02: ER605 firmware version (`[FIRMWARE]`) and WAN MAC (`[ER605 MAC]`)
 - 03: ISP DNS servers (`[ISP-DNS-1]`, `[ISP-DNS-2]`) and AX55 MAC (`[AX55 MAC]`)
 - 04: Internet-visible IPv4 (`[PUBLIC-IP]`), retained locally
+- 07: masked by the command itself, so only the first octet appears
+- 08: ISP DNS servers (`[ISP-DNS-1]`, `[ISP-DNS-2]`)
 
 Private lab and household addresses and the CGNAT-range WAN address were kept because the findings depend on them.
 
@@ -212,4 +282,4 @@ The strongest CGNAT proof in this experiment was the combination of an AX55 WAN 
 
 **PROVEN**
 
-The addressing boundaries and the CGNAT condition are supported by router status pages, the AX55 routing table, and the WAN-versus-public comparison. NAT translation itself was not captured, and the public-side comparison is a typed summary rather than raw output.
+The addressing boundaries and the CGNAT condition are supported by router status pages, the AX55 routing table, and the WAN-versus-public comparison. NAT translation itself was not captured. The October 5 re-test replaced the typed public-side comparison with command output and added a traceroute that reaches the CGNAT gateway.
