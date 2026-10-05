@@ -334,6 +334,8 @@ nc -v 10.10.20.10 8080
 (UNKNOWN) [10.10.20.10] 8080 (http-alt) open
 ```
 
+![Kali client connected](evidence/screenshots/12-kali-client-connected.png)
+
 While that connection was open, one `ss` command on Yoda showed both sockets:
 
 ```text
@@ -341,6 +343,8 @@ ss -tanp 'sport = :8080'
 LISTEN  10.10.20.10:8080  0.0.0.0:*            users:(("python3",pid=2364379,fd=3))
 ESTAB   10.10.20.10:8080  10.10.20.103:51868   users:(("python3",pid=2364379,fd=4))
 ```
+
+![LISTEN and ESTAB under one PID](evidence/screenshots/13-yoda-listen-and-estab-same-pid.png)
 
 One process, two sockets, at the same moment:
 
@@ -473,6 +477,8 @@ Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots r
 | `08-yoda-received-udp-payload.png` | UDP payload received by Yoda |
 | `09-udp-single-datagram-no-session.png` | One UDP datagram and no persistent client session |
 | `10-udp-closed-port-icmp-unreachable.png` | Closed UDP port and ICMP Port Unreachable |
+| `12-kali-client-connected.png` | Re-test: Kali connected to Yoda TCP/8080 and holding the connection open |
+| `13-yoda-listen-and-estab-same-pid.png` | Re-test: `LISTEN` and `ESTAB` from one `ss` command, same `python3` PID |
 | `15-envy-ephemeral-port-range.png` | ENVY ephemeral-port range, captured October 5, 2026 |
 | `16-kali-ephemeral-port-range.png` | Kali ephemeral-port range, re-test client |
 | `udp-open-port-summary.txt` | TShark-derived open-port UDP evidence |
