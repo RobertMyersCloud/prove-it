@@ -391,6 +391,14 @@ curl -v -o /dev/null http://10.10.20.10:8080/
 
 `curl` reported an HTTP/1.0 `200 OK` with `Content-Length: 657`, and noted that HTTP/1.0 closes the connection after the body. The capture stopped at 11 packets, 0 dropped.
 
+The server logged the same request on its side, at the same second the capture shows the GET (`14:10:41.156`):
+
+```text
+10.10.20.103 - - [05/Oct/2026 14:10:41] "GET / HTTP/1.1" 200 -
+```
+
+![Python listener and its request log](evidence/screenshots/11-yoda-python-listener-started.png)
+
 Before reading the capture back, I worked out the byte counts from the request and response headers. The capture matched:
 
 | Expected | Observed |
@@ -428,6 +436,44 @@ Yoda seq:  1 -> 156 -> 813 -> 814
 
 **Server-initiated close.** HTTP/1.0 closes after the response, so this time Yoda closed first and was the side that entered `TIME-WAIT`. The packet order shows this. I did not capture it in Yoda's socket table, because the 60-second `TIME-WAIT` period had passed by the time I checked.
 
+## Bounded Capture
+Both captures above were stopped with Ctrl+C, because neither connection reached 20 packets. That never showed `-c` actually ending a capture, so I ran one more with a limit the connection would hit.
+
+This time the server was started on an empty directory, so it wasn't serving `/root`:
+
+```text
+mkdir -p /srv/net002-empty
+python3 -m http.server 8080 --bind 10.10.20.10 --directory /srv/net002-empty
+```
+
+Capture, then one request from Kali:
+
+```text
+tcpdump -i vmbr0 -nn -c 3 -w /root/net002-retest-03.pcap 'host 10.10.20.103 and tcp port 8080'
+```
+
+tcpdump exited on its own:
+
+```text
+3 packets captured
+10 packets received by filter
+0 packets dropped by kernel
+```
+
+![Bounded tcpdump capture](evidence/screenshots/14-yoda-tcpdump-bounded-capture.png)
+
+- **3 captured:** `-c 3` wrote three packets to the file and stopped.
+- **10 received by filter:** the kernel filter matched 10 packets while the capture was still open. The whole request took about 2 ms, which is faster than tcpdump could close after the third packet. The extra 7 were matched and discarded, not lost.
+- **0 dropped:** nothing was lost to a full buffer.
+
+The file holds exactly the handshake:
+
+```text
+14:45:09.449849 IP 10.10.20.103.42136 > 10.10.20.10.8080: Flags [S], seq 494418339
+14:45:09.449885 IP 10.10.20.10.8080 > 10.10.20.103.42136: Flags [S.], seq 3297230041, ack 494418340
+14:45:09.450096 IP 10.10.20.103.42136 > 10.10.20.10.8080: Flags [.], ack 1
+```
+
 ## Ephemeral Ports
 Kali's range is the same as ENVY's:
 
@@ -437,7 +483,7 @@ net.ipv4.ip_local_port_range = 32768    60999
 
 ![Kali ephemeral port range](evidence/screenshots/16-kali-ephemeral-port-range.png)
 
-Both source ports Kali picked in the re-test, `51868` and `35920`, are inside that range.
+All three source ports Kali picked in the re-test, `51868`, `35920`, and `42136`, are inside that range.
 
 ## Cleanup
 `http.server` serves the directory it was started from, which on Yoda was `/root`. I stopped it with `kill 2364379` as soon as the captures were done, and `ss -tlnp | grep 8080` came back empty.
@@ -477,8 +523,10 @@ Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots r
 | `08-yoda-received-udp-payload.png` | UDP payload received by Yoda |
 | `09-udp-single-datagram-no-session.png` | One UDP datagram and no persistent client session |
 | `10-udp-closed-port-icmp-unreachable.png` | Closed UDP port and ICMP Port Unreachable |
+| `11-yoda-python-listener-started.png` | Re-test: Python listener started, with its log of the 14:10:41 GET |
 | `12-kali-client-connected.png` | Re-test: Kali connected to Yoda TCP/8080 and holding the connection open |
 | `13-yoda-listen-and-estab-same-pid.png` | Re-test: `LISTEN` and `ESTAB` from one `ss` command, same `python3` PID |
+| `14-yoda-tcpdump-bounded-capture.png` | Re-test: `tcpdump -c 3` ending on its own, with packet counts |
 | `15-envy-ephemeral-port-range.png` | ENVY ephemeral-port range, captured October 5, 2026 |
 | `16-kali-ephemeral-port-range.png` | Kali ephemeral-port range, re-test client |
 | `udp-open-port-summary.txt` | TShark-derived open-port UDP evidence |
