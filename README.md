@@ -1,4 +1,4 @@
-﻿# Prove-It
+# Prove-It
 
 This repository is my hands-on body of proof for **Network & Systems Infrastructure**.
 
@@ -36,11 +36,13 @@ Strong proof connects:
 
 Failures are useful when they expose real troubleshooting work. Claims are limited to what the collected evidence actually supports.
 
+Each project is one documented run. When I retest or fix something later, I record it in the same project instead of starting a new version.
+
 ## Repository Structure
 
 - `00-lab-infrastructure/` - physical and virtual lab architecture, boundaries, and baseline state
 - `01-networking/` - networking proof from Ethernet through segmentation and troubleshooting
-- `foundation/` - supporting systems-foundation work such as Linux, virtualization, and SSH
+- `foundation/` - supporting systems work such as Linux, virtualization, and SSH
 - `_control/` - project status, evidence index, backlog, capture standards, and operating rules
 
 Additional capability folders are created only when evidence earns them.
@@ -56,6 +58,7 @@ Published networking artifacts include:
 - **NET-005** - Routing and Path Selection
 - **NET-006** - NAT and CGNAT Path Analysis
 - **NET-007** - VLAN Segmentation and Policy Enforcement
+- **NET-008** - Protected Systems Enclave
 
 These artifacts use physical and virtual lab systems, packet captures, routing evidence, switch/router configuration, controlled failure, and before/after validation.
 
@@ -66,6 +69,10 @@ Raw working evidence stays local under ignored `evidence/raw/` directories.
 Before publication, evidence is reviewed and unnecessary identifiers, credentials, secrets, MAC addresses, SSIDs, public IPs, account identifiers, and unrelated packet data are removed or replaced with stable role labels when needed.
 
 Private RFC1918 addressing is retained when it materially explains the architecture.
+
+My name, usernames, and workstation hostnames show up in terminal prompts and window titles. I leave those visible on purpose because this is a named portfolio.
+
+A companion investigation, [packet-analysis-lab](https://github.com/RobertMyersCloud/packet-analysis-lab), applies the protocol work from NET-001 through NET-003 to troubleshooting and security analysis.
 
 ## Training Boundary
 
