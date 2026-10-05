@@ -151,9 +151,7 @@ A full SSH login was then completed from the authorized management workstation.
 
 ## Host-Level Management Restriction
 
-The ER605 provides network-level VLAN separation, but the LAN-to-LAN ACL interface in this environment only exposed network-level selectors for this use case.
-
-Host-specific SSH restriction was therefore enforced on Fedora with firewalld.
+The ER605 separates the VLANs, but on this firmware the LAN-to-LAN rule form selects whole networks (Source Network / Destination Network), not individual hosts. The ACL table shows the difference: rule 3 (LAN->LAN) uses network selectors, while rules 1 and 2 (LAN->WAN) use IP groups (screenshot 24). So the per-host SSH restriction between the two internal networks went on Fedora, in firewalld.
 
 A rich rule was created to permit SSH only from the authorized Windows management host:
 
@@ -195,7 +193,7 @@ No route to host
 
 while the authorized Windows management workstation continued to connect successfully.
 
-Despite the wording, this is not a routing failure. The reverse-path test earlier showed Yoda could reach Fedora, so the route existed. Traffic that matches no allow rule in the firewalld zone is rejected with an ICMP host-prohibited message, and Linux reports that ICMP error to `nc` as "No route to host". A silent drop would have produced a timeout instead, as in the enclave-isolation test below.
+Despite the wording, this is not a routing failure. The reverse-path test earlier showed Yoda could reach Fedora, so the route existed. Traffic that matches no allow rule in the firewalld zone is rejected with an ICMP "prohibited" message, and Linux reports that ICMP error to `nc` as "No route to host". A silent drop would have produced a timeout instead, as in the enclave-isolation test below.
 
 ![Unauthorized Yoda SSH blocked](evidence/05-yoda-unauthorized-ssh-blocked.png)
 
@@ -233,7 +231,7 @@ This validated that VLAN30 could not initiate traffic into the management LAN.
 This lab included several distinct troubleshooting points:
 
 - Verified host addressing and gateway reachability.
-- Confirmed inter-VLAN path behavior with ping, traceroute, route inspection, and TCP testing.
+- Confirmed inter-VLAN path behavior with ping, route inspection, and TCP testing.
 - Distinguished `Connection refused` from a timeout.
 - Identified incorrect Windows route selection on a dual-homed system.
 - Corrected the path with a specific route to 10.10.30.0/24.
@@ -269,7 +267,7 @@ This lab included several distinct troubleshooting points:
 8. [Fedora permanent firewall policy before tightening](evidence/34-firewall-permanent-before-tightening.png)
 9. [Windows persistent enclave route](evidence/09-windows-persistent-enclave-route.png)
 
-Re-test evidence (October 5, 2026) is shown inline in the section above, numbered 10–41. Numbers 15, 16, 21, 23 and 29 were not kept as screenshots; their terminal output is in [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt).
+Re-test evidence (October 5, 2026) is shown inline in the section below, numbered 10–41. Numbers 15, 16, 21, 23 and 29 were not kept as screenshots; their terminal output is in [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt).
 
 ## Result
 
@@ -277,7 +275,7 @@ NET-008 established a protected systems enclave on VLAN30 with a controlled mana
 
 The final design allows the designated Windows management workstation to administer the Fedora enclave host over SSH, blocks another management-side host from the same service, and prevents the enclave from initiating connections back into the management LAN.
 
-The result is a small but functional example of segmented infrastructure with layered enforcement at both the network and host level.
+The ER605 keeps the enclave off the management LAN, and firewalld on the host limits who can manage it.
 
 After the October 5 re-test, the enclave host is single-homed, has no household or internet egress, resolves DNS only through the ER605, and accepts no inbound connection except SSH from the authorized workstation.
 
@@ -346,7 +344,7 @@ The SSH restriction was not exposed through this path: both interfaces were in t
 ### Finding 4 — The SSH lockdown was the only inbound restriction
 
 **Expected:** the enclave accepts only management SSH from the authorized workstation.
-**Observed:** the saved firewall zone still carried the Fedora Workstation default of TCP and UDP `1025-65535` open. `ss -tuln` showed `passimd` listening on `0.0.0.0:27500`, and Yoda — refused on port 22 — connected to port 27500.
+**Observed:** the saved firewall zone still carried the Fedora Workstation default of TCP and UDP `1025-65535` open. `ss -tuln` showed a listener on `0.0.0.0:27500`, and Yoda, which is refused on port 22, connected to port 27500.
 **Investigated:** `ss -tlnp` identified the owner as `passimd`, the fwupd firmware-metadata sharing service. It's legitimate, but its job is sharing files with neighboring hosts, and an enclave host shouldn't do that.
 **Change:** I masked the service with `systemctl mask --now passim.service`. Then I removed the high-port ranges and `samba-client` from the saved zone, checked the saved config, and applied it with `firewall-cmd --reload`.
 **Validation:** port 27500 has no listener. Yoda is rejected on TCP 5355 (LLMNR), a service that is still listening, which proves the firewall alone now blocks it.
@@ -367,10 +365,12 @@ The SSH restriction was not exposed through this path: both interfaces were in t
 
 ### Finding 5 — A pre-rule SSH session from Yoda survived for three days
 
-**Observed:** `who` on Fedora showed an SSH session from Yoda (`10.10.20.10`) opened at 19:57 on October 2, before the `/32` rule was applied that evening.
+**Expected:** after the `/32` rule, the only SSH session on Fedora comes from Victus (`10.10.20.102`).
+**Observed:** one SSH session on Fedora reported its source as `10.10.20.10`, which is Yoda.
+**Investigated:** I checked Victus's addresses to rule out a duplicate IP (Victus was `10.10.20.102`). Then `who` showed two sessions: one from Victus, and one from Yoda opened at 19:57 on October 2, before I applied the `/32` rule that evening.
 **Root cause:** firewalld tracks established connections, so tightening the rules does not terminate sessions that are already open. A plain `firewall-cmd --reload` preserves them.
-**Change:** I closed the session.
-**Validation:** a new connection from Yoda is rejected, and `who` shows only the authorized session.
+**Change:** the stale session was closed. No firewall change was needed.
+**Validation:** `who` shows only the authorized session, and a new connection from Yoda is rejected.
 
 ![Victus IPv4 addresses](evidence/10-victus-ipv4-addresses.png)
 

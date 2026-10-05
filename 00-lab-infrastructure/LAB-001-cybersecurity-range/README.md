@@ -1,15 +1,17 @@
 # LAB-001 — Isolated Cybersecurity Range Architecture & Trust Boundary
 
+> **Baseline as of September 26, 2026.** This documents the lab before VLANs. ENVY later moved to VLAN 30 (NET-007), and in NET-008 it became a single-homed enclave host while Victus became the management workstation. The current layout is in the [repository README](../../README.md#lab-topology).
+
 ## Hiring Claim
 After reviewing this artifact, a hiring manager has evidence that I can document a network's starting state, define a trust boundary between two networks, and validate with tests that the boundary enforces what the design says it should.
 
 ## Objective
 
-Document and validate the starting architecture of my isolated cybersecurity lab before beginning the networking, security operations, and DFIR proof-of-work projects.
+Document and validate the starting layout of my isolated lab before building the networking projects on top of it.
 
 The lab is designed to allow systems inside the range to communicate with each other while preventing lab systems from reaching my household network or the Internet through the ER605.
 
-This gives me a controlled environment for future networking, attack-and-defense, packet-analysis, detection, and forensic exercises.
+That gives me a controlled place to break things and troubleshoot without touching the household network.
 
 ## Employer Skills Demonstrated
 
@@ -84,7 +86,7 @@ Instead, ENVY uses ARP to determine the Layer 2 MAC address associated with Yoda
 
 The ER605 becomes involved when traffic needs to leave the local subnet.
 
-This distinction is important:
+Two rules cover it:
 
 **Same subnet → ARP + Layer 2 switching**
 
@@ -135,11 +137,7 @@ However, access-control rules explicitly block traffic sourced from the lab towa
 1. the household network; and
 2. WAN/other destinations.
 
-This is an important distinction.
-
-The lab is not isolated simply because the router lacks an upstream route.
-
-**The upstream route exists. Access is intentionally denied by security policy.**
+The lab isn't isolated because the router has no way out. It has a working upstream route. The ACL rules are what block the traffic.
 
 ## Validation
 
@@ -251,7 +249,7 @@ Published evidence includes:
 4. The ER605 has valid upstream routing.
 5. Explicit access-control policy restricts the lab from reaching the household network and WAN.
 6. Kali's failed external connectivity test is consistent with the configured egress-control policy.
-7. ENVY can access both management networks while IPv4 forwarding remains disabled.
+7. ENVY can reach both the household and lab networks while IPv4 forwarding stays disabled.
 8. The current flat-switch configuration provides a documented baseline for future VLAN segmentation work.
 
 ## Result
@@ -271,8 +269,6 @@ This baseline will be used for future projects involving:
 - port mirroring
 - network monitoring
 - security detection
-- attack-and-defense exercises
-- DFIR and network forensics
 
 ---
 

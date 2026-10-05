@@ -154,7 +154,7 @@ The routing table independently corroborates the AX55 topology from `192.168.1.0
 
 ## Security-Control Observation
 
-An attempted public-IP lookup from Yoda timed out during name resolution. This behavior was consistent with the existing lab policy that intentionally restricts Yoda's Internet access.
+An attempted public-IP lookup from Yoda timed out during name resolution. I didn't check Yoda's resolver configuration at the time, so I can't say whether the timeout came from the lab egress policy or from DNS not being set up on Yoda. Either way, Yoda has no internet access by design.
 
 The security control was left intact. ENVY was used for the public-side comparison instead of weakening isolation simply to complete the experiment.
 

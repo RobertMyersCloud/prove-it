@@ -176,7 +176,7 @@ ENVY -> 10.10.20.10
 2 transmitted, 0 received, 100% loss
 ```
 
-Critically, the route still existed:
+The route still existed:
 
 ```text
 10.10.20.10 via 10.10.30.1
@@ -269,7 +269,7 @@ Layer-3 routing
 Security policy
 ```
 
-This lab demonstrated each stage independently and validated the final isolation behavior with before-and-after evidence.
+Each stage was tested on its own, and the final isolation has before-and-after evidence.
 
 ## Status
 

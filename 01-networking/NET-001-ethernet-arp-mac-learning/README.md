@@ -70,7 +70,7 @@ A subsequent lookup returned no entry, forcing address resolution on the next co
 6. Started a clean Wireshark capture.
 7. Generated one ICMP Echo Request from ENVY to Yoda.
 8. Stopped the capture and identified the controlled event.
-9. Used TShark and Editcap to isolate the four relevant packets into a public evidence PCAP.
+9. Used TShark and Editcap to isolate the four relevant packets into a small evidence PCAP.
 
 ## Switch Port Mirroring
 The SG108E mirrored both directions of Yoda's Port 2 to Victus on Port 4.
@@ -80,7 +80,7 @@ The SG108E mirrored both directions of Yoda's Port 2 to Victus on Port 4.
 This allowed Victus to observe frames entering and leaving Yoda's port without being either endpoint in the conversation.
 
 ## Observed Packet Sequence
-| Public PCAP Frame | Protocol | Direction | Observation |
+| Evidence PCAP Frame | Protocol | Direction | Observation |
 |---:|---|---|---|
 | 1 | ARP | ENVY → Broadcast | Who has `10.10.20.10`? Tell `10.10.20.101` |
 | 2 | ARP | Yoda → ENVY | `10.10.20.10` replies with its MAC address |
@@ -173,7 +173,7 @@ Victus was connected to mirror destination Port 4. IPv4 and IPv6 bindings were d
 
 The sensor therefore did not need to participate as an IPv4/IPv6 endpoint to observe the mirrored Layer 2 traffic. The switch copied Port 2 ingress and egress frames to Port 4 for passive analysis.
 
-This is directly relevant to monitoring architectures used for packet analysis and network-security sensors.
+This is the same way a network sensor or IDS tap is usually connected.
 
 ## Evidence Handling and Sanitization
 
@@ -203,12 +203,12 @@ This keeps the public evidence focused on the technical relationships required t
 7. The SG108E mirrored both directions of Yoda's Port 2 to the passive sensor on Port 4.
 8. Victus observed the exchange without participating as an IPv4/IPv6 endpoint on the capture interface.
 9. Background capture traffic had to be distinguished from the controlled event through correlation.
-10. The public PCAP contains only the four packets required to demonstrate the event.
+10. The evidence PCAP contains only the four packets needed to show the event. It is kept local with the original capture because it still contains real MAC addresses. The published proof is the screenshots and `packet-summary.txt`.
 
 ## Why This Matters
 ARP and Ethernet behavior sit underneath network troubleshooting and many security investigations. Understanding IP-to-MAC resolution, switch forwarding, broadcast versus unicast traffic, and routed versus local traffic is necessary for interpreting packet captures correctly.
 
-Port mirroring also bridges networking and security operations by allowing passive sensors to observe traffic without becoming communication endpoints.
+Port mirroring lets a sensor see traffic without being part of the conversation.
 
 ## Evidence Index
 | Evidence | Purpose |
@@ -218,7 +218,7 @@ Port mirroring also bridges networking and security operations by allowing passi
 | `03-arp-reply-frame-analysis.png` | Unicast ARP reply and resolved addressing |
 | `04-icmp-encapsulation-analysis.png` | Ethernet → IPv4 → ICMP encapsulation |
 | `05-sg108e-port-mirror-configuration.png` | Port 2 ingress/egress mirrored to Port 4 |
-| `packet-summary.txt` | TShark summary of the public PCAP |
+| `packet-summary.txt` | TShark summary of the four-packet evidence PCAP |
 
 ## Status
 **PROVEN**

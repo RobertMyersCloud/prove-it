@@ -26,7 +26,7 @@ Security is integrated into the infrastructure work through segmentation, least 
 
 Every substantial artifact follows the same standard:
 
-**Learn -> Build -> Break -> Diagnose -> Fix -> Prove -> Explain**
+**Learn -> Build -> Break when useful -> Diagnose -> Fix -> Prove -> Explain**
 
 A screenshot, command, or successful ping is not enough by itself.
 
@@ -129,8 +129,6 @@ Useful concepts are learned, reproduced independently in my own environment, val
 
 ## End State
 
-The objective is not to collect disconnected labs.
-
-It is to build deep, defensible capability in network and systems infrastructure and to show the progression from fundamentals to production-style troubleshooting, observability, recovery, and security-focused operations.
+I'm not trying to collect a pile of disconnected labs. Each project builds on the one before it, from fundamentals toward the kind of troubleshooting, monitoring, and recovery work an infrastructure job actually involves.
 
 **Prove it.**
