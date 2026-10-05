@@ -124,6 +124,55 @@ TLS can still fail
 
 A working route and open TCP port do not guarantee a successful HTTPS transaction. TLS adds identity, protocol, and cryptographic requirements above TCP connectivity.
 
+### Client-Side Certificate Rejection — October 5, 2026
+
+The test above failed on the server side. To see the other kind of failure, where the server finishes its part and the client refuses the certificate, I ran a second test from Victus (Windows). Fedora no longer has internet access after the NET-008 changes.
+
+The target was `wrong.host.badssl.com`, a public test site. That server presents a valid certificate for `*.badssl.com`, but a wildcard only covers one label, so it matches `host.badssl.com` and not `wrong.host.badssl.com`.
+
+**Step 1: normal request**
+
+```powershell
+curl.exe -v https://wrong.host.badssl.com/
+```
+
+```text
+curl: (60) schannel: SNI or certificate check failed: SEC_E_WRONG_PRINCIPAL (0x80090322) - The target principal name is incorrect.
+```
+
+![Client rejects certificate name](evidence/screenshots/05-victus-client-cert-name-rejected.png)
+
+Windows curl uses Schannel, so the wording is different from the OpenSSL errors on Fedora. Schannel's message says "SNI or certificate", so on its own it doesn't say which one failed.
+
+**Step 2: same request, certificate verification skipped**
+
+```powershell
+curl.exe -v -k -o NUL https://wrong.host.badssl.com/
+```
+
+```text
+* ALPN: server accepted http/1.1
+* Established connection to wrong.host.badssl.com (104.154.89.105 port 443) ...
+< HTTP/1.1 200 OK
+```
+
+![Same request with verification skipped](evidence/screenshots/06-victus-same-request-verification-skipped.png)
+
+The only change was `-k`, which skips certificate verification. With it, the TLS session completed and the server returned `200 OK`. So the server accepted the name and did its part. The failure in step 1 was my client rejecting the certificate because the name didn't match. `-k` is only for proving the cause in a test. On a real connection it removes the protection against impersonation.
+
+### Two TLS Failures Compared
+
+| | Server-side rejection (Fedora) | Client-side rejection (Victus) |
+|---|---|---|
+| Name sent | `wrong.example` to example.com's address | `wrong.host.badssl.com` |
+| What happened | Server sent a `handshake_failure` alert and closed | Server sent its certificate; the client refused it |
+| Certificate received | No | Yes |
+| curl exit code | `35`, TLS connect error | `60`, certificate verification error |
+| Works with `-k` | No, the server still refuses | Yes, `200 OK` |
+| Where to fix it | Server: it doesn't serve that name | Name or certificate: the cert doesn't cover that name |
+
+The exit code is the quickest tell. `35` means the handshake never finished. `60` means it got far enough for the client to judge the certificate and say no.
+
 ## Relationship to Earlier Proof
 ```text
 NET-001  Ethernet / ARP / switching
@@ -148,11 +197,13 @@ Public packet evidence is TShark-derived and limited to the controlled conversat
 | `01-curl-https-tls-http-transaction.png` | Successful HTTPS transaction and HTTP `200 OK` |
 | `02-tls-packet-lifecycle.png` | TCP handshake, TLS records, and teardown |
 | `03-tls-certificate-sni-validation.png` | TLS/cipher and X.509 identity validation |
-| `04-tls-handshake-failure.png` | Controlled TLS failure/troubleshooting |
+| `04-tls-handshake-failure.png` | Server-side SNI rejection, `curl: (35)` |
+| `05-victus-client-cert-name-rejected.png` | Client-side certificate name rejection, `curl: (60)` |
+| `06-victus-same-request-verification-skipped.png` | Same request with `-k` completes with `200 OK` |
 | `tls-lifecycle-summary.txt` | TShark-derived TCP/TLS lifecycle |
 | `tls-clienthello-summary.txt` | SNI, offered versions/ciphers, ALPN, and JA3 |
 
 ## Status
 **PROVEN**
 
-A complete HTTPS transaction was traced through transport establishment, TLS negotiation, certificate validation, encrypted application traffic, and teardown. Observable ClientHello metadata was extracted, endpoint-versus-network visibility was distinguished, and a controlled TLS failure was diagnosed above the TCP layer.
+A complete HTTPS transaction was traced through transport establishment, TLS negotiation, certificate validation, encrypted application traffic, and teardown. Observable ClientHello metadata was extracted, endpoint-versus-network visibility was distinguished, and two TLS failures were diagnosed above the TCP layer: a server-side SNI rejection and a client-side certificate name rejection.
