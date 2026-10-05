@@ -486,7 +486,9 @@ net.ipv4.ip_local_port_range = 32768    60999
 All three source ports Kali picked in the re-test, `51868`, `35920`, and `42136`, are inside that range.
 
 ## Cleanup
-`http.server` serves the directory it was started from, which on Yoda was `/root`. I stopped it with `kill 2364379` as soon as the captures were done, and `ss -tlnp | grep 8080` came back empty.
+`http.server` serves the directory it was started from. The first server was started from `/root`, so it was exposing root's home directory to the lab while it ran. I stopped it with `kill 2364379` as soon as connections 1 and 2 were done, and `ss -tlnp | grep 8080` came back empty.
+
+The server for the bounded capture was pointed at an empty directory instead (`--directory /srv/net002-empty`). I stopped it with `kill 2370960`, and `ss -tanp 'sport = :8080'` returned no sockets.
 
 ## Re-test Comparison
 | | Original | Connection 1 | Connection 2 |
