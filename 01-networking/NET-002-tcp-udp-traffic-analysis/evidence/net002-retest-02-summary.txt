@@ -1,0 +1,11 @@
+14:10:41.155326 IP 10.10.20.103.35920 > 10.10.20.10.8080: Flags [S], seq 711813585, win 64240, options [mss 1460,sackOK,TS val 1675654365 ecr 0,nop,wscale 9], length 0
+14:10:41.155363 IP 10.10.20.10.8080 > 10.10.20.103.35920: Flags [S.], seq 1154959097, ack 711813586, win 65160, options [mss 1460,sackOK,TS val 1461053544 ecr 1675654365,nop,wscale 10], length 0
+14:10:41.155473 IP 10.10.20.103.35920 > 10.10.20.10.8080: Flags [.], ack 1, win 126, options [nop,nop,TS val 1675654365 ecr 1461053544], length 0
+14:10:41.156222 IP 10.10.20.103.35920 > 10.10.20.10.8080: Flags [P.], seq 1:81, ack 1, win 126, options [nop,nop,TS val 1675654365 ecr 1461053544], length 80: HTTP: GET / HTTP/1.1
+14:10:41.156241 IP 10.10.20.10.8080 > 10.10.20.103.35920: Flags [.], ack 81, win 64, options [nop,nop,TS val 1461053545 ecr 1675654365], length 0
+14:10:41.156817 IP 10.10.20.10.8080 > 10.10.20.103.35920: Flags [P.], seq 1:156, ack 81, win 64, options [nop,nop,TS val 1461053546 ecr 1675654365], length 155: HTTP: HTTP/1.0 200 OK
+14:10:41.156866 IP 10.10.20.10.8080 > 10.10.20.103.35920: Flags [FP.], seq 156:813, ack 81, win 64, options [nop,nop,TS val 1461053546 ecr 1675654365], length 657: HTTP
+14:10:41.156992 IP 10.10.20.103.35920 > 10.10.20.10.8080: Flags [.], ack 156, win 126, options [nop,nop,TS val 1675654366 ecr 1461053546], length 0
+14:10:41.157059 IP 10.10.20.103.35920 > 10.10.20.10.8080: Flags [.], ack 814, win 125, options [nop,nop,TS val 1675654366 ecr 1461053546], length 0
+14:10:41.157498 IP 10.10.20.103.35920 > 10.10.20.10.8080: Flags [F.], seq 81, ack 814, win 125, options [nop,nop,TS val 1675654367 ecr 1461053546], length 0
+14:10:41.157508 IP 10.10.20.10.8080 > 10.10.20.103.35920: Flags [.], ack 82, win 64, options [nop,nop,TS val 1461053546 ecr 1675654367], length 0
