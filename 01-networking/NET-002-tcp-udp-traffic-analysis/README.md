@@ -34,13 +34,15 @@ The testing focused on behavior observable on the wire and in operating-system s
 | TShark | Public evidence extraction | Victus (the TShark runs aren't shown in the screenshots) |
 
 ## Ephemeral-Port Baseline
-ENVY's configured IPv4 ephemeral-port range was:
+ENVY's configured IPv4 ephemeral-port range is:
 
 ```text
-32768 60999
+net.ipv4.ip_local_port_range = 32768    60999
 ```
 
-I didn't capture that check as a screenshot.
+I didn't capture this check during the original test. I captured it on October 5, 2026 with `sysctl net.ipv4.ip_local_port_range`.
+
+![ENVY ephemeral port range](evidence/screenshots/15-envy-ephemeral-port-range.png)
 
 During testing ENVY selected:
 
@@ -422,6 +424,17 @@ Yoda seq:  1 -> 156 -> 813 -> 814
 
 **Server-initiated close.** HTTP/1.0 closes after the response, so this time Yoda closed first and was the side that entered `TIME-WAIT`. The packet order shows this. I did not capture it in Yoda's socket table, because the 60-second `TIME-WAIT` period had passed by the time I checked.
 
+## Ephemeral Ports
+Kali's range is the same as ENVY's:
+
+```text
+net.ipv4.ip_local_port_range = 32768    60999
+```
+
+![Kali ephemeral port range](evidence/screenshots/16-kali-ephemeral-port-range.png)
+
+Both source ports Kali picked in the re-test, `51868` and `35920`, are inside that range.
+
 ## Cleanup
 `http.server` serves the directory it was started from, which on Yoda was `/root`. I stopped it with `kill 2364379` as soon as the captures were done, and `ss -tlnp | grep 8080` came back empty.
 
@@ -438,8 +451,6 @@ Yoda seq:  1 -> 156 -> 813 -> 814
 | `TIME-WAIT` on | ENVY (socket table) | Kali (from packets) | Yoda (from packets) |
 
 ## Re-test Evidence Limits
-- I haven't captured ENVY's ephemeral-port range check yet.
-- Kali's ephemeral-port range wasn't checked, so ports `51868` and `35920` aren't compared against a range.
 - `TIME-WAIT` in the re-test is shown by packet order only, not by a socket table.
 
 ## Evidence Handling
@@ -462,6 +473,8 @@ Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots r
 | `08-yoda-received-udp-payload.png` | UDP payload received by Yoda |
 | `09-udp-single-datagram-no-session.png` | One UDP datagram and no persistent client session |
 | `10-udp-closed-port-icmp-unreachable.png` | Closed UDP port and ICMP Port Unreachable |
+| `15-envy-ephemeral-port-range.png` | ENVY ephemeral-port range, captured October 5, 2026 |
+| `16-kali-ephemeral-port-range.png` | Kali ephemeral-port range, re-test client |
 | `udp-open-port-summary.txt` | TShark-derived open-port UDP evidence |
 | `udp-closed-port-summary.txt` | TShark-derived closed-port UDP/ICMP evidence |
 | `net002-retest-01-summary.txt` | Re-test connection 1: handshake, 3m41s idle, client-initiated teardown |
