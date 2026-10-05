@@ -284,8 +284,125 @@ TCP demonstrated ephemeral client-port selection, four-tuple identification, SYN
 
 UDP demonstrated ephemeral client-port selection, a bound `UNCONN` server socket, one-shot datagram delivery, no TCP-style transport acknowledgment or established session, no FIN teardown, and ICMP Port Unreachable when the destination UDP port was closed.
 
+# Retest — Kali to Yoda, Data in Both Directions
+
+## Why I Reran It
+In the original TCP test, data only moved one way. ENVY sent bytes and Yoda acknowledged them, but Yoda never sent any data of its own, so its sequence number stayed at 1. Independent sequence spaces were explained but only one side was actually observed advancing.
+
+The retest used a different client and a server that answers with data, so both sides would have to send bytes.
+
+## Setup
+| Item | Value |
+|---|---|
+| Client | Kali VM `10.10.20.103` |
+| Server | Yoda `10.10.20.10:8080`, `python3 -m http.server 8080 --bind 10.10.20.10` |
+| Capture point | Yoda, bridge `vmbr0` |
+| Capture | `tcpdump -i vmbr0 -nn -c 20 -w <file>.pcap 'host 10.10.20.103 and tcp port 8080'` |
+
+Before the data test I checked what was actually listening on Yoda instead of assuming:
+
+```text
+ss -tlnp | grep 8080
+LISTEN 0  5  10.10.20.10:8080  0.0.0.0:*  users:(("python3",pid=2364379,fd=3))
+
+ps -o pid,lstart,args -p 2364379
+2364379 Mon Oct 5 13:58:52 2026 python3 -m http.server 8080 --bind 10.10.20.10
+```
+
+I expected `nc`. It was the Python HTTP server I had started at the beginning of the session. That changed the test: raw text sent to it would get an HTTP error back, so I used `curl` to send a real HTTP request.
+
+`http.server` serves the directory it was started from, which on Yoda was `/root`. It was stopped with `kill` as soon as the capture finished, and `ss` confirmed nothing was left listening on 8080.
+
+## Run 01 — Connection With No Data
+This run was not planned. A reachability check from Kali (`nc -v 10.10.20.10 8080`) happened while the capture was already armed, so it was recorded. I kept it because it shows something the original test did not.
+
+| Time | Direction | Flags | Seq / Ack |
+|---|---|---|---|
+| 13:59:46.395 | Kali → Yoda | `S` | seq 3348818357 |
+| 13:59:46.395 | Yoda → Kali | `S.` | ack 3348818358 |
+| 13:59:46.395 | Kali → Yoda | `.` | ack 1 |
+| 14:03:27.150 | Kali → Yoda | `F.` | seq 1, ack 1 |
+| 14:03:27.150 | Yoda → Kali | `F.` | seq 1, ack 2 |
+| 14:03:27.150 | Kali → Yoda | `.` | ack 2 |
+
+Observations:
+
+- Yoda acknowledged Kali's initial sequence number plus one. The SYN consumed one sequence number.
+- The connection stayed established for 3 minutes 41 seconds with **no packets at all**. An idle TCP connection sends nothing unless the application turns on keepalives, and `nc` does not.
+- I closed the client with Ctrl+C, so Kali sent the first FIN. Yoda acknowledged it and sent its own FIN in the same segment, giving a three-segment teardown, the same pattern as the original test.
+- Kali closed first, so Kali was the side that entered `TIME-WAIT`.
+
+If a capture had started any time after 13:59:46, the only thing it would have shown is the teardown. A quiet, long-lived connection can't be fully tied to its start without the handshake.
+
+## Run 02 — Data in Both Directions
+```text
+curl -v -o /dev/null http://10.10.20.10:8080/
+```
+
+`curl` reported an HTTP/1.0 `200 OK` with `Content-Length: 657`, and noted that HTTP/1.0 closes the connection after the body.
+
+Before reading the capture back, I predicted the byte counts from the request and response headers. The capture matched every one:
+
+| Prediction | Observed |
+|---|---|
+| GET request = 80 bytes, Kali `seq 1:81` | `[P.] seq 1:81, length 80` |
+| Yoda acknowledges with `ack 81` | `[.] ack 81` |
+| Response headers = 155 bytes | `[P.] seq 1:156, length 155` |
+| Body = 657 bytes, Yoda data ends at 813 | `[FP.] seq 156:813, length 657` |
+| Kali final acknowledgment = 814 | `[.] ack 814` |
+
+Full sequence:
+
+| Direction | Flags | Seq / Ack | Length |
+|---|---|---|---|
+| Kali → Yoda | `S` | seq 711813585 | 0 |
+| Yoda → Kali | `S.` | seq 1154959097, ack 711813586 | 0 |
+| Kali → Yoda | `.` | ack 1 | 0 |
+| Kali → Yoda | `P.` | seq 1:81, ack 1 | 80 (GET) |
+| Yoda → Kali | `.` | ack 81 | 0 |
+| Yoda → Kali | `P.` | seq 1:156, ack 81 | 155 (headers) |
+| Yoda → Kali | `FP.` | seq 156:813, ack 81 | 657 (body + FIN) |
+| Kali → Yoda | `.` | ack 156 | 0 |
+| Kali → Yoda | `.` | ack 814 | 0 |
+| Kali → Yoda | `F.` | seq 81, ack 814 | 0 |
+| Yoda → Kali | `.` | ack 82 | 0 |
+
+The whole exchange took about 2.2 ms.
+
+### Independent Sequence Spaces
+This is what the original test could not show.
+
+```text
+Kali seq:  1 -> 81 -> 82
+Yoda seq:  1 -> 156 -> 813 -> 814
+```
+
+Each side counted only its own bytes, and each side's ACK referred to the other side's count.
+
+### FIN on the Data Segment
+Yoda did not send a separate FIN. It set FIN on the same segment that carried the last 657 bytes of the body (`[FP.]`). The data ended at 813 and the FIN consumed one more sequence number, which is why Kali's final acknowledgment was 814.
+
+### Server-Initiated Close
+HTTP/1.0 closes after the response, so this time Yoda closed first. Kali acknowledged the FIN, then sent its own FIN after `curl` finished, and Yoda acknowledged it with `ack 82`.
+
+Because Yoda closed first, Yoda was the side that entered `TIME-WAIT`. That is shown by the packet sequence. I did not capture it in Yoda's socket table, because the 60-second `TIME-WAIT` period had already passed when I checked.
+
+## Retest Comparison
+| | Original | Run 01 | Run 02 |
+|---|---|---|---|
+| Client | ENVY | Kali | Kali |
+| Server | `nc` on Yoda | `http.server` on Yoda | `http.server` on Yoda |
+| Data sent by client | 10 bytes, then 1 | None | 80 bytes |
+| Data sent by server | None | None | 812 bytes |
+| Both sequence numbers advanced | No | No | Yes |
+| Side that closed first | Client | Client | Server |
+| Teardown | 3 segments | 3 segments | FIN on data, then ACK, FIN, ACK |
+| `TIME-WAIT` on | ENVY (socket table) | Kali (from packets) | Yoda (from packets) |
+
 ## Evidence Handling
 The two UDP PCAPs are retained locally under `evidence/raw/`, which is excluded from version control.
+
+The two retest PCAPs are kept on Yoda and are not published. The retest summaries are `tcpdump -nn -r` readbacks written without `-e`, so they contain no MAC addresses. They were copied out of the lab as text rather than opening a network path from the lab to my workstation.
 
 Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots required to support the findings. Persistent Layer 2 identifiers and unrelated raw packet data are not published when unnecessary to the hiring claim.
 
@@ -304,8 +421,10 @@ Public evidence consists of TShark-derived Layer 3/4 summaries and screenshots r
 | `10-udp-closed-port-icmp-unreachable.png` | Closed UDP port and ICMP Port Unreachable |
 | `udp-open-port-summary.txt` | TShark-derived open-port UDP evidence |
 | `udp-closed-port-summary.txt` | TShark-derived closed-port UDP/ICMP evidence |
+| `net002-retest-01-summary.txt` | Retest run 01: handshake, 3m41s idle, client-initiated teardown |
+| `net002-retest-02-summary.txt` | Retest run 02: data both directions, FIN on data segment, server-initiated close |
 
 ## Status
 **PROVEN**
 
-TCP and UDP behavior was generated on the physical lab network, validated through operating-system socket state and packet evidence, compared directly, and documented with focused public evidence.
+TCP and UDP behavior was generated on the physical lab network, validated through operating-system socket state and packet evidence, compared directly, and documented with focused public evidence. The Kali-to-Yoda retest added data in both directions, showing both sequence spaces advancing independently, and a server-initiated close.
