@@ -75,7 +75,7 @@ flowchart TB
 |---|---|---|---|---|---|
 | ER605 | TP-Link ER605 v2 | `10.10.20.1`, `10.10.30.1`, WAN `192.168.1.177` | Lab / VLAN 30 / household | Router, DHCP, DNS relay, ACL trust boundary | LAB-001 |
 | TL-SG108E | TP-Link managed switch | `10.10.20.100` | Lab | 802.1Q switching, port mirroring | LAB-001 |
-| Yoda | Proxmox VE | `10.10.20.10` | Lab | Virtualization host | LAB-001 |
+| Yoda | Proxmox VE | `10.10.20.10` | Lab | Virtualization host; IP forwarding off on `vmbr0` since NET-005 | LAB-001 |
 | Kali | Kali Linux VM on Yoda | `10.10.20.103` | Lab | Security testing, no egress | LAB-001 |
 | Victus | Windows 11 | `10.10.20.102` | Lab (also household Wi-Fi) | Management workstation, Wireshark | LAB-001 |
 | ENVY | Fedora Workstation, hostname `fedora` | `10.10.30.100` | VLAN 30 | Protected enclave host, tcpdump capture | LAB-001 |
