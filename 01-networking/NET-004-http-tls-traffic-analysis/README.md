@@ -99,7 +99,20 @@ A passive capture can still expose metadata such as addresses, ports, timing, TC
 ## Controlled TLS Failure
 ![Controlled TLS handshake failure](evidence/screenshots/04-tls-handshake-failure.png)
 
-A separate test deliberately produced a hostname/SNI-related TLS failure while targeting an HTTPS endpoint.
+To see what a TLS failure looks like when the network path is fine, I used curl's `--resolve` option to send a hostname that doesn't exist, `wrong.example`, to example.com's real address, `104.20.23.154`. The first line of the output shows the override: `Added wrong.example:443:104.20.23.154 to DNS cache`.
+
+**Expected:** TCP connects, then TLS fails because the name doesn't belong to that server.
+**Observed:**
+
+```text
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS alert, handshake failure (552):
+curl: (35) TLS connect error: error:0A000410:SSL routines::ssl/tls alert handshake failure
+```
+
+**Analysis:** TCP/443 connected and curl sent its ClientHello with SNI `wrong.example`. The server answered with a `handshake_failure` alert and closed the connection. It never sent a certificate, so curl never got to certificate validation.
+
+That makes this a server-side rejection. The Cloudflare edge at that address doesn't serve `wrong.example`, so it refused the handshake on the SNI alone. A client-side certificate mismatch looks different: the handshake completes, the server sends its certificate, and curl rejects it with an error like `no alternative certificate subject name matches target host name`.
 
 The troubleshooting lesson is:
 
