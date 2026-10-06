@@ -5,3 +5,6 @@
 
 # Personal documents - never publish
 resume-output/
+
+# Private planning - never publish
+_control/
