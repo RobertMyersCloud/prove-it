@@ -85,12 +85,26 @@ ENVY was on the lab LAN at `10.10.20.101` until NET-007 moved it to VLAN 30. Its
 
 ## Repository Structure
 
-- `00-lab-infrastructure/` - physical and virtual lab architecture, boundaries, and baseline state
-- `01-networking/` - networking proof from Ethernet through segmentation and troubleshooting
-- `foundation/` - supporting systems work such as Linux, virtualization, and SSH
-- `_control/` - project status, evidence index, backlog, capture standards, and operating rules
+Every artifact lives at `NN-area/ID-short-slug/`, numbered in catalog order:
 
-Additional capability folders are created only when evidence earns them.
+- `00-lab-infrastructure/` - lab architecture, boundaries, and baseline state
+- `01-networking/` - networking proof from Ethernet through segmentation and troubleshooting
+- `02-linux/` - Linux administration
+- `_control/` - status, evidence index, backlog, capture standards, and operating rules
+
+Later areas follow the same pattern (`03-windows`, `04-infrastructure`, `05-security-foundations`, `06-break-fix`, `07-active-directory`) and appear when their first artifact is published.
+
+## Roadmap and Completion
+
+Prove-It supplies the network and systems foundation for my network-security direction. The roadmap includes networking, Linux, Windows, infrastructure, security foundations and break/fix, and Active Directory.
+
+- [Full capability checklist](_control/CAPABILITY-CHECKLIST.md) — all 120 topic slots, current evidence coverage and remaining work. These are capability requirements, not 120 separate new builds.
+- [Build order](_control/BACKLOG.md) — the next block and the remaining foundation packages.
+- [Current status](_control/STATUS.md) — published artifacts and the active queue.
+- [Evidence index](_control/INDEX.md) — where the existing proof lives.
+- [Portfolio plan](_control/PORTFOLIO-PLAN.md) — the network-security repository that runs alongside this one, three mini projects and three major projects.
+
+NET-009 through NET-012 is the next block, not the full completion boundary. Existing evidence can satisfy several checklist items. The network-security repository runs alongside this one, while study and applications continue.
 
 ## Current Networking Proof
 

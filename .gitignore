@@ -1,3 +1,7 @@
 
 # Local raw evidence - never publish
 **/evidence/raw/
+**/raw/
+
+# Personal documents - never publish
+resume-output/
