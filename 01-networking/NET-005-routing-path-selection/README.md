@@ -391,6 +391,50 @@ I didn't reload the network on the hypervisor during the session. `ifquery --che
 
 ![ifquery check](evidence/screenshots/20-yoda-ifquery-check-pass.png)
 
+### Reboot Verification
+The first reboot came back with forwarding on again:
+
+```text
+uptime -s
+2026-10-05 19:14:59
+net.ipv4.conf.vmbr0.forwarding = 1
+net.ipv6.conf.vmbr0.forwarding = 1
+```
+
+The two `ip-forward` lines were gone from the file, and `ifquery --check vmbr0` no longer listed them:
+
+![Interfaces after first reboot](evidence/screenshots/21-yoda-interfaces-reverted-after-first-reboot.png)
+
+The file's modify and change times were both `19:14:11`, 48 seconds before the boot, so it was written in place before the restart, not renamed during boot:
+
+![Interfaces timestamps](evidence/screenshots/22-yoda-interfaces-timestamps.png)
+
+Root's shell history showed the cause. I had run the rollback command just before the reboot:
+
+```text
+cp /etc/network/interfaces.bak-2026-10-05 /etc/network/interfaces
+reboot
+```
+
+The rollback was meant only for the case where Yoda didn't come back. The fix itself was never tested on that boot.
+
+I re-added the two lines, confirmed them with `cat`, and ran `ifquery --check vmbr0` immediately before rebooting. It listed `ip-forward` and `ip6-forward` as `[fail]` (running `on`, configured `off`), which showed ifupdown2 was reading them. I left the runtime value at `1` so that a `0` after the reboot could only come from the config.
+
+After the second reboot:
+
+```text
+uptime -s; sysctl net.ipv4.conf.vmbr0.forwarding net.ipv6.conf.vmbr0.forwarding; grep forward /etc/network/interfaces
+2026-10-06 07:28:44
+net.ipv4.conf.vmbr0.forwarding = 0
+net.ipv6.conf.vmbr0.forwarding = 0
+        ip-forward off
+        ip6-forward off
+```
+
+![Forwarding after reboot](evidence/screenshots/23-yoda-forwarding-after-reboot.png)
+
+The explicit `ip-forward off` and `ip6-forward off` override ifupdown2's bridge default at boot.
+
 With IPv6 forwarding off, `vmbr0` could start accepting router advertisements. `ip -6 addr show dev vmbr0` showed only a link-local address, so it did not pick up a routable IPv6 address.
 
 ## Findings
@@ -404,10 +448,10 @@ With IPv6 forwarding off, `vmbr0` could start accepting router advertisements. `
 ## Production Considerations
 - A hypervisor with one bridged network has no reason to route. This one wasn't a bypass because Yoda has a single interface and could only hand traffic back to the ER605, where the ACLs still apply. With a second interface or a VLAN-aware bridge, the same default would make it a path around the segmentation.
 - Checking a global sysctl is not enough. The per-interface value is what the kernel uses.
+- Confirm the config file right before a reboot that is meant to test it. A rollback step belongs outside the change steps, marked for the failure case only.
 - ICMP redirects let one host change another host's routing. I didn't change `send_redirects` on Yoda or `accept_redirects` on Kali in this session.
 
 ## Re-test Evidence Limits
-- The persistent fix hasn't been tested across a reboot yet. It's supported by the ifupdown2 code and `ifquery --check`. The check after the next reboot is `sysctl net.ipv4.conf.vmbr0.forwarding`, which should return `0`.
 - During the forwarding run, the `nic0` capture can't show whether pings 2 and 3 went through Yoda or straight to the ER605 after the redirect.
 
 ## Evidence Limits
@@ -445,6 +489,9 @@ The ER605's MAC address is redacted in screenshot 04. The label in the image rea
 | `18-kali-route-restored.png` | Re-test: route back via the ER605 |
 | `19-kali-ping-restored.png` | Re-test: normal path working again |
 | `20-yoda-ifquery-check-pass.png` | Re-test: persistent `ip-forward off` / `ip6-forward off` accepted and matching |
+| `21-yoda-interfaces-reverted-after-first-reboot.png` | First reboot: forward lines missing after the rollback was run |
+| `22-yoda-interfaces-timestamps.png` | File written at 19:14:11, before the boot |
+| `23-yoda-forwarding-after-reboot.png` | Second reboot: forwarding `0` on `vmbr0` from the config alone |
 | `routing-findings.txt` | Concise findings from the controlled routing experiments |
 
 ## Key Takeaway
