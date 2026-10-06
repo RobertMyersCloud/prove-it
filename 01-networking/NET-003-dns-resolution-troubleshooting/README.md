@@ -141,6 +141,18 @@ no servers could be reached
 
 The preceding ping also received no reply, but ping failure alone was not treated as proof that a host was absent because ICMP can be filtered.
 
+I didn't check the neighbor table at the time. On October 5, 2026 I checked it from Kali, on the same subnet:
+
+```text
+ping -c 2 -W 1 10.10.20.250; ip neigh show 10.10.20.250
+2 packets transmitted, 0 received, 100% packet loss
+10.10.20.250 dev eth0 INCOMPLETE
+```
+
+![ARP for 10.10.20.250](evidence/screenshots/05-kali-arp-250-incomplete.png)
+
+`INCOMPLETE` means Kali sent ARP requests for `10.10.20.250` and nothing answered. A firewall can drop ICMP, but a host on the same subnet still has to answer ARP to receive anything, so no host was at that address. That is why the DNS query timed out instead of being refused. This check was made later than the original test, so it shows the address unused on October 5, not on the day of the DNS test.
+
 `10.10.20.250` is on ENVY's connected `10.10.20.0/24` network, so ENVY has to resolve it with ARP before it can send the query. With no host at that address, the likely failure point is ARP: no reply means the DNS query never had a destination MAC to go to. I didn't capture ARP or the neighbor table for this test, so that part isn't evidenced.
 
 | Condition | DNS response? | Interpretation |
@@ -171,7 +183,7 @@ These parts of the README describe work I did, but I didn't keep public evidence
 - The `google.com` A/AAAA/MX/NS/TXT results and the `www.google.com CNAME` query.
 - The NOERROR/NODATA query under `example.com`.
 - The cache flush and the 22 ms vs 0 ms timing comparison.
-- ARP or neighbor-table state for the `10.10.20.250` timeout.
+- ARP or neighbor-table state for the `10.10.20.250` timeout at the time of the test. A later check (October 5, 2026, screenshot 05) shows no host answering ARP at that address.
 
 ## Evidence Handling
 Original PCAPs remain local under `evidence/raw/` and are excluded from version control. Public packet evidence is TShark-derived and limited to fields needed to support the findings.
@@ -183,6 +195,7 @@ Original PCAPs remain local under `evidence/raw/` and are excluded from version 
 | `02-dig-forced-tcp53-result.png` | Application proof of TCP/53 |
 | `03-dns-nxdomain-response.png` | Valid NXDOMAIN response |
 | `04-dns-server-timeout.png` | No-response DNS failure |
+| `05-kali-arp-250-incomplete.png` | No ARP answer for `10.10.20.250`, checked October 5, 2026 |
 | `dns-normal-resolution-summary.txt` | Stub and dual-upstream A/AAAA evidence |
 | `dns-tcp53-summary.txt` | TCP handshake, DNS payload, ACK, and teardown evidence |
 

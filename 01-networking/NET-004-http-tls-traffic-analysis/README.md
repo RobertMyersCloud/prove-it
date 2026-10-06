@@ -144,7 +144,22 @@ A working route and open TCP port do not guarantee a successful HTTPS transactio
 
 The test above failed on the server side. To see the other kind of failure, where the server finishes its part and the client refuses the certificate, I ran a second test from Victus (Windows). Fedora no longer has internet access after the NET-008 changes.
 
-The target was `wrong.host.badssl.com`, a public test site. badssl.com documents this host as set up so the certificate it serves doesn't cover that name. I didn't capture the certificate's contents, so I'm relying on the site's description and the error below, not on certificate evidence of my own.
+The target was `wrong.host.badssl.com`, a public test site. badssl.com documents this host as set up so the certificate it serves doesn't cover that name. I checked the certificate the server actually sends, using PowerShell's TLS client with validation turned off so the handshake would finish:
+
+```powershell
+$t=[Net.Sockets.TcpClient]::new('wrong.host.badssl.com',443); $s=[Net.Security.SslStream]::new($t.GetStream(),$false,{$true}); $s.AuthenticateAsClient('wrong.host.badssl.com'); $c=[Security.Cryptography.X509Certificates.X509Certificate2]$s.RemoteCertificate; $c.Subject; ($c.Extensions | ? {$_.Oid.Value -eq '2.5.29.17'}).Format($true); $c.NotAfter; $t.Close()
+```
+
+```text
+CN=*.badssl.com
+DNS Name=*.badssl.com
+DNS Name=badssl.com
+Monday, December 28, 2026 2:02:55 PM
+```
+
+![badssl certificate](evidence/screenshots/08-victus-badssl-certificate.png)
+
+The certificate covers `*.badssl.com` and `badssl.com`. A wildcard matches exactly one label, so `*.badssl.com` covers `host.badssl.com` but not `wrong.host.badssl.com`, which has two labels in front of `badssl.com`. The name I asked for isn't on the certificate.
 
 **Step 1: normal request**
 
@@ -182,10 +197,24 @@ The only change was `-k`, which skips certificate verification. With it, the TLS
 |---|---|---|
 | Name sent | `wrong.example` to example.com's address | `wrong.host.badssl.com` |
 | What happened | Server sent a `handshake_failure` alert and closed | Server sent its certificate; the client refused it |
-| Certificate received | No | Yes (implied by the name error) |
+| Certificate received | No | Yes, `CN=*.badssl.com` (screenshot 08) |
 | curl exit code | `35`, TLS connect error | `60`, certificate verification error |
-| Works with `-k` | Not tested | Yes, `200 OK` |
+| Works with `-k` | No, still `35` (screenshot 07) | Yes, `200 OK` |
 | Where to fix it | Server: it doesn't serve that name | Name or certificate: the cert doesn't cover that name |
+
+I later reran the server-side test from Victus with `-k`:
+
+```powershell
+curl.exe -v -k --resolve wrong.example:443:104.20.23.154 https://wrong.example/ -o NUL
+```
+
+```text
+curl: (35) schannel: next InitializeSecurityContext failed: SEC_E_ILLEGAL_MESSAGE (0x80090326) - This error usually occurs when a fatal SSL/TLS alert is received (e.g. handshake failed).
+```
+
+![wrong.example with -k](evidence/screenshots/07-victus-wrong-example-with-k.png)
+
+Skipping certificate verification changed nothing. The server sent a fatal alert during the handshake, before any certificate, so there was nothing for `-k` to skip.
 
 The exit code is the quickest tell. `35` is curl's TLS connect error; here it came from the server's alert before any certificate arrived. `60` means the certificate was received and failed verification.
 
@@ -204,8 +233,8 @@ NET-004 applies the TCP lifecycle from NET-002 to a real encrypted application p
 
 ## Evidence Limits
 - Screenshots 03 and 04 are cropped. The `openssl s_client` connect command that produced the top of 03 and the full curl command for 04 (including `--resolve`) aren't shown; only their output is. The `--resolve` override is shown by curl's `Added wrong.example:443:104.20.23.154 to DNS cache` line.
-- I didn't run the `wrong.example` test with `-k`.
-- I didn't capture packets for either failure test, and I didn't capture the `wrong.host.badssl.com` certificate.
+- The `wrong.example` test with `-k` was run later, from Victus (Schannel) rather than Fedora (OpenSSL).
+- I didn't capture packets for either failure test.
 - Frame roles after the ClientHello are based on direction, size, and order lined up with curl's output, not on decrypted contents.
 
 ## Evidence Handling
@@ -222,6 +251,8 @@ Public packet evidence is TShark-derived and limited to the controlled conversat
 | `04-tls-handshake-failure.png` | Server-side SNI rejection, `curl: (35)` |
 | `05-victus-client-cert-name-rejected.png` | Client-side certificate name rejection, `curl: (60)` |
 | `06-victus-same-request-verification-skipped.png` | Same request with `-k` completes with `200 OK` |
+| `07-victus-wrong-example-with-k.png` | Server-side rejection still fails with `-k`, `curl: (35)` |
+| `08-victus-badssl-certificate.png` | Certificate served by `wrong.host.badssl.com`: subject and SANs |
 | `tls-lifecycle-summary.txt` | TShark-derived TCP/TLS lifecycle |
 | `tls-clienthello-summary.txt` | SNI, offered versions/ciphers, ALPN, and JA3 |
 

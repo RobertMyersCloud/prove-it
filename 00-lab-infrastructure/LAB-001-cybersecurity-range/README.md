@@ -125,7 +125,7 @@ The collected evidence verifies:
 - `nic0` is a member of `vmbr0`
 - `tap100i0` is a member of `vmbr0`
 - Yoda uses `10.10.20.10/24`
-- Kali answers at `10.10.20.103` (Yoda and ENVY both ping it with 0% loss); I didn't capture Kali's own interface configuration, so its prefix length isn't shown in this evidence
+- Kali answers at `10.10.20.103` (Yoda and ENVY both ping it with 0% loss). I didn't capture Kali's own interface configuration at this baseline. I captured it on October 5, 2026: `ip -br -4 addr show dev eth0` shows `10.10.20.103/24` (screenshot 07)
 - Yoda's default gateway is `10.10.20.1`
 
 ## Trust Boundary
@@ -255,6 +255,7 @@ Victus was temporarily connected to the lab for setup and evidence collection. I
 | [04-er605-routing-table.png](evidence/screenshots/04-er605-routing-table.png) | ER605 routing table: default route via `192.168.1.1` on WAN, connected `192.168.1.0/24` and `10.10.20.0/24` |
 | [05-sg108e-vlan-baseline.png](evidence/screenshots/05-sg108e-vlan-baseline.png) | SG108E 802.1Q VLAN set to Disable |
 | [06-sg108e-port-status.png](evidence/screenshots/06-sg108e-port-status.png) | SG108E ports 1–4 at 1000MF, ports 5–8 Link Down |
+| [07-kali-ipv4-address.png](evidence/screenshots/07-kali-ipv4-address.png) | Kali `eth0` at `10.10.20.103/24`, captured October 5, 2026 |
 
 ## Evidence Handling
 
