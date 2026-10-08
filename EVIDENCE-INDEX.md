@@ -13,8 +13,8 @@ Every artifact below is a documented run in my own lab, with machine evidence an
 | NET-004 | [HTTP/TLS Traffic Analysis](01-networking/NET-004-http-tls-traffic-analysis/README.md) | TCP/443, TLS lifecycle, SNI, ALPN, X.509, encrypted traffic analysis |
 | NET-005 | [Routing and Path Selection](01-networking/NET-005-routing-path-selection/README.md) | Longest-prefix match, metrics, static routes, next-hop validation, restoration |
 | NET-006 | [NAT and CGNAT Path Analysis](01-networking/NET-006-nat-cgnat-path-analysis/README.md) | RFC1918/RFC6598, WAN/LAN boundaries, route analysis, CGNAT evidence |
-| NET-007 | [VLAN Segmentation and Policy Enforcement](01-networking/NET-007-vlan-segmentation/README.md) | 802.1Q, tagged/untagged ports, PVID, DHCP, inter-VLAN routing, ACLs |
-| NET-008 | [Protected Systems Enclave](01-networking/NET-008-protected-systems-enclave/README.md) | Router ACL + firewalld rich rules, least-privilege SSH, persistent routes, positive/negative testing |
+| NET-007 | [VLAN Segmentation and Policy Enforcement](01-networking/NET-007-vlan-segmentation/README.md) | 802.1Q, tagged/untagged ports, PVID, DHCP, inter-VLAN routing, ACLs, trunk capture, switch port hardening |
+| NET-008 | [Protected Systems Enclave](01-networking/NET-008-protected-systems-enclave/README.md) | Router ACL + firewalld rich rules, least-privilege SSH, persistent routes, positive/negative testing, traffic-to-process attribution |
 | LNX-001 | [Linux VM Build and SSH Administration](02-linux/LNX-001-linux-vm-ssh/README.md) | Linux, Hyper-V, virtualization, SSH, remote administration |
 
 ## Skill-to-Proof Map
@@ -30,16 +30,18 @@ Every artifact below is a documented run in my own lab, with machine evidence an
 | HTTP / TLS | NET-004 |
 | Routing / path selection | LAB-001, NET-005, NET-006, NET-007, NET-008 |
 | CGNAT identification / address boundaries | NET-006 |
-| VLANs / 802.1Q | NET-007 |
+| VLANs / 802.1Q (configuration and on-the-wire tag) | NET-007 |
 | Inter-VLAN routing | NET-007 |
 | ACL / policy enforcement | LAB-001, NET-007, NET-008 |
 | Host firewall policy | NET-008 |
 | Host hardening / service minimization | NET-008 |
+| Switch port hardening | NET-007 |
+| Traffic-to-process attribution | NET-008 |
 | DHCP option troubleshooting | NET-008 |
 | Secure administrative access | NET-008 |
 | Linux patching and kernel validation | NET-008 |
-| Packet analysis | NET-001 through NET-005 |
-| Port mirroring | NET-001 |
+| Packet analysis | NET-001 through NET-005, NET-007, NET-008 |
+| Port mirroring / passive capture | NET-001, NET-007 |
 | Proxmox virtual networking | LAB-001 |
 | Hyper-V virtualization | LNX-001 |
 | Linux remote administration | LNX-001 |
