@@ -16,6 +16,8 @@ After reviewing this artifact, a hiring manager has evidence that I can design a
 - LAN-to-LAN ACL enforcement
 - Before/after policy validation
 - Controlled infrastructure change
+- Port mirroring and passive packet capture
+- Switch port hardening
 
 ## Environment
 The existing lab network was preserved while a second routed VLAN was introduced.
@@ -229,6 +231,62 @@ Should security policy permit the packet?
 **Change:** I created `DENY_VLAN30_TO_LAB` on the ER605 (screenshot 05).
 **Validation:** ENVY still reached `10.10.30.1` (2 of 2), Yoda failed (0 of 2, 100% loss), and the route via `10.10.30.1` was still there (screenshot 02). The loss came from the policy, not from routing or the VLAN.
 
+## Re-test: 802.1Q Tag Captured on the Trunk (October 7, 2026)
+
+The original build showed VLAN 30 tagging only as switch configuration. This re-test puts a capture box on a mirror of the Port 1 trunk and records the tag on the wire.
+
+### Capture setup
+
+The capture box is the XPS (Kali) with a USB-C Ethernet adapter (ASIX AX88179). The adapter didn't show up in `lsusb` at first. It appeared after I reconnected it, and the kernel created `eth0` on its own.
+
+**What went wrong first.** I plugged the XPS into Port 5 before setting up the mirror. Port 5 was enabled but unused, so it was a normal VLAN 1 access port. NetworkManager brought the link up and the ER605 handed the XPS a lease: `kali`, `10.10.20.101` (evidence 07). For a few minutes the capture box was a full member of the lab LAN. I pulled the cable and logged it as GAP-008 (fixed below).
+
+**Making the capture box silent.** Before it went back on the wire:
+
+| Step | Command | Result |
+|---|---|---|
+| Stop NetworkManager from managing the adapter | `sudo nmcli device set eth0 managed no` | `eth0` shows `unmanaged` |
+| Stop IPv6 address autoconfiguration on it | `sudo sysctl -w net.ipv6.conf.eth0.disable_ipv6=1` | `= 1` |
+| Bring the link up with no address | `sudo ip link set eth0 up` | `NO-CARRIER,…,UP`, no `inet` or `inet6` lines |
+
+Evidence 08. None of these survive a reboot, so nothing is left on the XPS afterward.
+
+**Mirror.** SG108E Port Mirror enabled, mirroring port 5; Port 1 mirrored on ingress and egress (evidence 09). Port 1 is the uplink to the ER605 and the only link that carries VLAN 30 tagged. With the cable back in Port 5, `eth0` showed `UP,LOWER_UP` and still had no address.
+
+### Result
+
+```text
+sudo tcpdump -i eth0 -e -nn -c 10 'host 10.10.30.100 or (vlan 30 and host 10.10.30.100)'
+```
+
+The filter matches ENVY's traffic with or without a tag, so untagged frames would also have shown up if the tag were being stripped somewhere.
+
+All 10 frames were tagged: `ethertype 802.1Q (0x8100), length 78: vlan 30, p 0, ethertype IPv4`. Source was ENVY, destination the ER605's VLAN 30 interface. `0 packets dropped by kernel` (evidence 10). A second capture in NET-008 also shows the ER605's replies to ENVY tagged `vlan 30` on the same trunk ([NET-008 evidence 59](../NET-008-protected-systems-enclave/evidence/59-xps-tcpdump-envy-correlated-photo.jpg)).
+
+The frames were ENVY's own background traffic, not a test I generated. What that traffic was is covered in [NET-008](../NET-008-protected-systems-enclave/README.md#background-egress-attempts--october-7-2026).
+
+### Putting the switch back
+
+| Change | Evidence |
+|---|---|
+| Port Mirror disabled; every port's ingress and egress mirroring set to Disable | 11 |
+| Ports 5–8 (unused, Link Down) disabled. Ports 1–4 left Enabled at 1000MF | 06 before / 12 after |
+| XPS plugged back into Port 5: `eth0 DOWN <NO-CARRIER,…,UP>`, no link | 13 |
+
+The same action that got a DHCP lease at the start now gets no link.
+
+### Notes from the session
+
+- **The SG108E doesn't answer ping.** `ping 10.10.20.100` timed out while the ER605 at `10.10.20.1` answered, and kept timing out after the web interface was working again. Ping can't be used to check whether this switch is up.
+- **The web interface hung during the cleanup.** It timed out until I cleared the browser's cookies for it. The switch's address didn't change.
+- **The switch has no save-config option.** Changes appear to be saved as they're applied. I haven't confirmed that they survive a power loss.
+
+### Re-test Evidence Limits
+
+- Evidence 08, 10 and 13 are phone photos of the XPS screen. MAC addresses in them are masked.
+- The capture is on the Port 1 trunk only. I didn't capture on Port 3, so the untagged side of ENVY's access port is still shown by configuration only.
+- Persistence of the port changes across a switch power loss hasn't been tested.
+
 ## Evidence Index
 
 | Evidence | Purpose |
@@ -238,12 +296,20 @@ Should security policy permit the packet?
 | `03-sg108e-vlan30-membership.png` | Tagged uplink and untagged ENVY access-port membership |
 | `04-sg108e-port3-pvid30.png` | ENVY ingress traffic assigned to VLAN 30 |
 | `05-er605-vlan30-to-lab-acl.png` | LAN-to-LAN policy that blocks VLAN 30 from the lab LAN |
+| `06-sg108e-port-status-before.png` | October 7: Ports 1–4 Enabled at 1000MF; Ports 5–8 Enabled, Link Down |
+| `07-er605-dhcp-xps-lease.png` | ER605 DHCP client list: capture laptop `kali` leased `10.10.20.101` from Port 5 (MACs masked) |
+| `08-xps-eth0-listen-only-photo.jpg` | XPS `eth0` unmanaged, IPv6 disabled, up with no address (photo, MACs masked) |
+| `09-sg108e-port-mirror-p1-to-p5.png` | Port Mirror on, mirroring port 5; Port 1 ingress and egress |
+| `10-xps-tcpdump-vlan30-tagged-photo.jpg` | 10 of 10 frames `802.1Q (0x8100) … vlan 30` on the trunk (photo, MACs masked) |
+| `11-sg108e-port-mirror-disabled.png` | Port Mirror off; all ports Disable |
+| `12-sg108e-unused-ports-disabled.png` | Ports 5–8 Disabled; Ports 1–4 Enabled at 1000MF |
+| `13-xps-port5-disabled-no-carrier-photo.jpg` | XPS in Port 5 after the change: `NO-CARRIER`, no link (photo, MAC masked) |
 | `vlan-segmentation-findings.txt` | Concise evidence-derived findings |
 
 ## Evidence Limits
 - **Baseline and DHCP cutover:** I didn't capture ENVY at `10.10.20.101`, the SG108E with 802.1Q disabled, or the lease change from `10.10.20.101` to `10.10.30.100`. Screenshot 01 shows ENVY at `10.10.30.100/24` afterward; the route-table change isn't captured.
 - **ER605 Port 3:** the diagram shows the SG108E uplink on ER605 Port 3. No screenshot here shows the ER605 port.
-- **802.1Q tagging:** tagging is shown as switch configuration only (screenshot 03: VLAN 30 tagged on Port 1, untagged on Port 3). I didn't capture a tagged frame on the wire.
+- **802.1Q tagging:** in the original build, tagging was shown as switch configuration only (screenshot 03). The October 7 re-test above captures VLAN 30 tagged frames on the Port 1 trunk.
 - **DHCP settings:** shown only in NET-008 evidence 18 and 19, captured October 5, 2026.
 
 ## Evidence Handling
@@ -282,4 +348,4 @@ Each stage was tested on its own, and the VLAN 30 to lab LAN block has before-an
 
 **PROVEN**
 
-VLAN 30, inter-VLAN routing, and the VLAN 30 to lab LAN block are proven with before-and-after tests. Household and internet egress from VLAN 30 were not covered here; they were found open and closed in NET-008 (October 5, 2026).
+VLAN 30, inter-VLAN routing, and the VLAN 30 to lab LAN block are proven with before-and-after tests. Household and internet egress from VLAN 30 were not covered here; they were found open and closed in NET-008 (October 5, 2026). The 802.1Q tag on the trunk was captured on the wire on October 7, 2026, and the unused switch ports were disabled.

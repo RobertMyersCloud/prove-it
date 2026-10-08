@@ -234,9 +234,36 @@ This allows ENVY to function as the normal lab-management workstation without be
 
 Victus was temporarily connected to the lab for setup and evidence collection. It is not intended to remain a permanent range member.
 
+## Re-test: Lab → Household Endpoint Test (October 7, 2026)
+
+At baseline, Lab → Household DENY was only shown as a configured rule. This re-test sends real packets across the boundary and adds a control, so the result can't be explained by the target simply ignoring ping.
+
+Target: the AX55 household router at `192.168.1.1`.
+
+| Step | Host | Command | Result | Evidence |
+|---|---|---|---|---|
+| 1. Route check | Kali (`10.10.20.103`) | `ip route get 192.168.1.1` | `via 10.10.20.1 dev eth0` | 08 |
+| 2. Lab → Household | Kali | `ping -c 4 -W 2 192.168.1.1` | 4 transmitted, 0 received, 100% loss; no ICMP error returned | 09 |
+| 3. Control path check | Victus | `Find-NetRoute -RemoteIPAddress 192.168.1.1` | Wi-Fi interface, `192.168.1.x` source, on-link (next hop `0.0.0.0`) | 10 |
+| 4. Household → AX55 control | Victus | `ping -n 4 -S <Wi-Fi address> 192.168.1.1` | 4 sent, 4 received, TTL=64 | 11 |
+
+What this shows:
+
+- Kali has a route to the household network and hands that traffic to the ER605. The failure is not a missing route on Kali.
+- The AX55 answers ping from the household side, so the 100% loss from Kali is not the target ignoring ICMP.
+- Nothing came back to Kali, not even an ICMP error. That is consistent with the ER605 Block rules dropping the traffic silently, the same drop behavior seen in NET-008.
+
+The host part of Victus's Wi-Fi address is masked in screenshots 10 and 11.
+
+### Re-test Evidence Limits
+
+- The drop isn't observed on the ER605 itself. I didn't capture ACL logs or counters, so this doesn't show which rule matched (`DENY_Lab_to_Household` or `DENY_Lab_to_Any`). Both block the same source group.
+- One protocol (ICMP) toward one household host. TCP and UDP toward the household weren't tested.
+- Victus was on the lab and household Wi-Fi at the same time during the control. Screenshot 10 shows the control traffic used Wi-Fi.
+
 ## Evidence Limits
 
-- **Lab → Household: DENY** is shown as a configured ACL rule only. I didn't run an endpoint test from the lab toward a `192.168.1.0/24` host at this baseline.
+- **Lab → Household: DENY** was shown as a configured ACL rule only at the September 26 baseline. The October 7, 2026 re-test above adds an endpoint test with a household-side control.
 - The ACL rules reference the groups `GRP_LabNet` and `GRP_Household`. LAB-001 does not show what those groups contain. The group and address definitions are shown in NET-008 evidence captured October 5, 2026: [25-er605-ip-addresses-before.png](../../01-networking/NET-008-protected-systems-enclave/evidence/25-er605-ip-addresses-before.png) (`LabNet` = `10.10.20.0/24`, `Household` = `192.168.1.0/24`) and [26-er605-ip-groups-before.png](../../01-networking/NET-008-protected-systems-enclave/evidence/26-er605-ip-groups-before.png). Those screenshots were taken after this baseline, not on September 26.
 - The SG108E port map is not evidenced beyond link status (see above).
 - Egress denial rests on one ICMP test plus the ACL configuration.
@@ -256,6 +283,10 @@ Victus was temporarily connected to the lab for setup and evidence collection. I
 | [05-sg108e-vlan-baseline.png](evidence/screenshots/05-sg108e-vlan-baseline.png) | SG108E 802.1Q VLAN set to Disable |
 | [06-sg108e-port-status.png](evidence/screenshots/06-sg108e-port-status.png) | SG108E ports 1–4 at 1000MF, ports 5–8 Link Down |
 | [07-kali-ipv4-address.png](evidence/screenshots/07-kali-ipv4-address.png) | Kali `eth0` at `10.10.20.103/24`, captured October 5, 2026 |
+| [08-kali-route-to-household.png](evidence/screenshots/08-kali-route-to-household.png) | Kali route lookup to `192.168.1.1`: via `10.10.20.1` on `eth0`, October 7, 2026 |
+| [09-kali-ping-household-denied.png](evidence/screenshots/09-kali-ping-household-denied.png) | Kali ping to `192.168.1.1`: 4 transmitted, 0 received, 100% loss |
+| [10-victus-route-to-household-wifi.png](evidence/screenshots/10-victus-route-to-household-wifi.png) | Victus route lookup to `192.168.1.1`: Wi-Fi interface, on-link (host octet masked) |
+| [11-victus-ping-household-control.png](evidence/screenshots/11-victus-ping-household-control.png) | Victus ping to `192.168.1.1` from its Wi-Fi address: 4 sent, 4 received, TTL=64 (host octet masked) |
 
 ## Evidence Handling
 
@@ -308,4 +339,4 @@ This baseline will be used for future projects involving:
 ## Status
 **PROVEN**
 
-Baseline validated 2026-09-26. Internal connectivity, bridge membership, routing, and ACL configuration are shown directly; the limits are listed under Evidence Limits.
+Baseline validated 2026-09-26. Internal connectivity, bridge membership, routing, and ACL configuration are shown directly. Lab → Household denial endpoint-tested 2026-10-07 with a household-side control. The limits are listed under Evidence Limits and Re-test Evidence Limits.

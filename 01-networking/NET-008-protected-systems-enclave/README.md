@@ -21,7 +21,7 @@ ENVY (Fedora, `10.10.30.100`) is the enclave host on VLAN30. Victus (Windows 11,
 - **DNS:** VLAN30 DHCP hands out the ER605 (`10.10.30.1`) as the resolver.
 - **ENVY interfaces:** single-homed on VLAN30; Wi-Fi radio off.
 - **ENVY firewalld:** the zone allows only `dhcpv6-client` plus an SSH rich rule for `10.10.20.102/32`. No open ports.
-- **ENVY services:** `passim` masked.
+- **ENVY services:** `passim` masked. Since October 7, `gnome-software` is masked and NetworkManager's connectivity check is disabled, so ENVY no longer retries HTTPS and HTTP egress in the background ([Background Egress Attempts](#background-egress-attempts--october-7-2026)).
 
 The October 5 re-test found five problems in the October 2 build:
 
@@ -47,6 +47,7 @@ The October 5 re-test found five problems in the October 2 build:
 | ENVY | mirrors.fedoraproject.org | HTTPS | Not tested | Timed out | 43, 53 |
 | ENVY | ER605 10.10.30.1 | DNS from DHCP | **10.10.31.1** | Resolves | 18, output §1 / 17, 20, 32, 57 |
 | ENVY | — | Default routes | **VLAN30 and Wi-Fi** | VLAN30 only | output §2 / output §3, 55 |
+| ENVY | Internet, ports 443 and 80 | Background SYN retries (found Oct 7) | Retrying constantly; dropped at the ER605 | None in 6 minutes after the Oct 7 fixes | 58, 59 / 64 |
 | ENVY | — | firewalld zone | **`samba-client`, `1025-65535`** | `dhcpv6-client`, `/32` SSH rule | 04, 34 / 39, 40, 56 |
 
 "Output §n" is a section of [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt).
@@ -538,6 +539,85 @@ One change I didn't expect: the default route's metric went from 100 to 20100. A
 
 I didn't capture timestamps for opening and closing the window. The update was the only thing I used it for.
 
+## Background Egress Attempts — October 7, 2026
+
+During the NET-007 trunk capture, ENVY was sending traffic nobody had told it to send. The capture box was the XPS on a mirror of SG108E Port 1, set up so it sends nothing itself ([NET-007 re-test](../NET-007-vlan-segmentation/README.md#re-test-8021q-tag-captured-on-the-trunk-october-7-2026)).
+
+### What was on the wire
+
+ENVY was sending a steady stream of TCP SYNs to port 443 with no replies. The SYNs repeated with the same sequence numbers, which is TCP retransmitting the first packet of a connection that never got an answer. Four connections were cycling to `52.222.205.16`, `.45`, `.65` and `.74` (evidence 58). The boundary was dropping them, so ENVY kept retrying.
+
+### Naming the processes
+
+`ss` on ENVY shows which process owns a connection, but by the time I ran it, those four had timed out and been replaced, so I couldn't tie them to anything. To get a match, I ran the capture and `sudo ss -tnp state syn-sent` at the same time:
+
+- Capture: `10.10.30.100.54728 > 151.101.65.91.443: Flags [S]` (evidence 59)
+- `ss`: `10.10.30.100:54728  151.101.65.91:443  users:(("gnome-software",pid=3390,fd=43))` (evidence 60)
+
+Same source port, same destination, at the same moment. Every connection in `SYN-SENT` belonged to `gnome-software`.
+
+The same capture showed a second pattern: a DNS lookup for `fedoraproject.org` through the ER605, followed by SYNs to the answers on port 80. None of those appeared in the `ss` output under `gnome-software`. NetworkManager's connectivity check is configured as `uri=http://fedoraproject.org/static/hotspot.txt` (evidence 61), which matches the lookup and the port.
+
+| Talker | What it does | Port | How it was identified |
+|---|---|---|---|
+| `gnome-software` | Refreshes the app catalog. Its log shows repeated `Treating remote fetch error as non-fatal` warnings for `runtime/…` and `app/…` refs | 443 | Source port 54728 matched between capture and `ss` |
+| NetworkManager connectivity check | Fetches `hotspot.txt` to decide whether the host has internet | 80 | Configured URI matches the DNS lookup and port 80 SYNs |
+| Not identified | SYNs to `52.222.205.x:443` | 443 | Timed out before I could check them |
+
+Neither talker can succeed in the enclave. The cost is noise: a box that's supposed to be quiet was retrying constantly, which would hide traffic that shouldn't be there.
+
+### Fixes
+
+**NetworkManager connectivity check.** I left Fedora's file in `/usr/lib` alone, since a package update can overwrite it, and added an override in `/etc`:
+
+```text
+/etc/NetworkManager/conf.d/99-disable-connectivity-check.conf
+[connectivity]
+enabled=false
+```
+
+`sudo nmcli general reload conf` applied it without restarting NetworkManager, so my SSH session from Victus stayed up. `NetworkManager --print-config` shows the merged result as `[connectivity]` / `enabled=false` (evidence 61). Files load in order, so `99-` wins over Fedora's `20-connectivity-fedora.conf`.
+
+**gnome-software.** `/etc/xdg/autostart` had no entry for it. `systemctl --user status 3390` showed why: it runs as the systemd user service `gnome-software.service` (`static`, started on demand), running `/usr/bin/gnome-software --gapplication-service` (evidence 62). A static unit can't be disabled, so I masked it first and then stopped it:
+
+```text
+systemctl --user mask gnome-software.service
+systemctl --user stop gnome-software.service
+```
+
+Status afterward: `Loaded: masked`, `Active: inactive (dead) since 17:50:36`, `Main PID: 3390 (code=killed, signal=TERM)` (evidence 63). The Software app won't open while it's masked. ENVY's updates go through `dnf` in a temporary window, so it isn't needed here. `systemctl --user unmask gnome-software.service` reverses it.
+
+### Validation
+
+A 6-minute capture on the same mirror after both fixes, excluding my SSH session:
+
+```text
+sudo timeout 360 tcpdump -i eth0 -nn 'vlan 30 and host 10.10.30.100 and not port 22'
+```
+
+There were no SYNs to port 443 or 80 and no `fedoraproject.org` lookups (evidence 64). What was left:
+
+| Traffic | What it is |
+|---|---|
+| ARP request and reply for `10.10.30.1` (twice) | ENVY keeping its gateway's MAC current |
+| mDNS query to `224.0.0.251:5353` | Avahi asking the local network for file-sharing services. Link-local, so it doesn't leave VLAN 30 |
+| NTPv4 client to `172.234.25.10:123` | chrony reaching for an internet time server. The ER605 drops it, so ENVY currently has no time source |
+
+The NTP finding is not fixed here.
+
+### Lessons
+
+- **A passive capture shows what a host actually does, not what it was configured to do.** The firewall and ACL tests in the October 5 re-test proved what was blocked. They didn't show what ENVY kept trying to reach.
+- **Tie the packet to the process before naming it.** The first `ss` check showed `gnome-software`, but on different connections than the ones I'd captured. Running both at the same moment and matching a source port is what made the claim.
+- **Override vendor config in `/etc`, don't edit it in `/usr/lib`.**
+
+### Evidence Limits
+
+- Evidence 58, 59, 60 and 64 are phone photos of the screen. MAC addresses in 59 and 64 are masked.
+- The four `52.222.205.x` connections in the first capture were never tied to a process.
+- The 6-minute capture reported `10 packets received by filter` but printed 6. The other four matched the filter but weren't printed before `timeout` ended the capture.
+- The default route metric of 20100 noted under Patch Window came from the connectivity check marking the connection as limited. With the check disabled, I haven't re-checked the metric.
+
 ## Evidence Index
 
 "Output §n" is a section of [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt). Numbers 15, 16, 21, 23, 29 and 42 were not kept as screenshots.
@@ -601,6 +681,13 @@ I didn't capture timestamps for opening and closing the window. The update was t
 | 55 | `55-post-reboot-wifi-off-single-homed.png` | Wi-Fi `disabled`; only VLAN30 routes; default metric 20100 |
 | 56 | `56-post-reboot-firewall-and-passim.png` | Zone after reboot; `passim` masked |
 | 57 | `57-post-reboot-dns-works.png` | Non-cached lookup resolves after reboot |
+| 58 | `58-xps-tcpdump-envy-https-syns-photo.jpg` | October 7: ENVY SYNs to `52.222.205.x:443`, same sequence numbers repeating (photo) |
+| 59 | `59-xps-tcpdump-envy-correlated-photo.jpg` | SYN from source port 54728 to `151.101.65.91:443`; `fedoraproject.org` lookup and port 80 SYNs; all tagged `vlan 30` (photo, MACs masked) |
+| 60 | `60-envy-ss-syn-sent-gnome-software-photo.jpg` | `ss` on ENVY: port 54728 to `151.101.65.91:443` owned by `gnome-software`, pid 3390 (photo) |
+| 61 | `61-envy-nm-connectivity-uri-and-disabled.png` | Fedora's connectivity URI, and the merged config showing `enabled=false` |
+| 62 | `62-envy-gnome-software-service.png` | `gnome-software.service`, static, `--gapplication-service`; remote fetch warnings in the log |
+| 63 | `63-envy-gnome-software-masked-stopped.png` | Masked, stopped, pid 3390 killed with TERM |
+| 64 | `64-xps-tcpdump-envy-quiet-after-fix-photo.jpg` | 6-minute capture after the fixes: ARP, mDNS, NTP only (photo, MACs masked) |
 | — | `remediation-terminal-output.txt` | Output for 15, 16, 21, 23 and 42, plus the DHCP options for Finding 1 |
 
 ## Public Evidence Notes
@@ -610,4 +697,4 @@ The screenshots used in this project were reviewed before publication. Public ev
 ## Status
 **PROVEN**
 
-Allowed and denied management paths were tested from both sides of the boundary, and both the route and the firewall policy were made persistent. The October 5 re-test found and fixed five problems; see [GAPS.md](../../_control/GAPS.md). A few October 2 steps were not captured and are marked "Not captured" above.
+Allowed and denied management paths were tested from both sides of the boundary, and both the route and the firewall policy were made persistent. The October 5 re-test found and fixed five problems; see [GAPS.md](../../_control/GAPS.md). A few October 2 steps were not captured and are marked "Not captured" above. On October 7, a passive capture found ENVY retrying HTTPS and HTTP egress in the background; both sources were named, turned off, and confirmed quiet on the wire.
