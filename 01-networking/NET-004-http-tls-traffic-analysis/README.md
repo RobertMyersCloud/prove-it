@@ -1,7 +1,10 @@
 # NET-004 — HTTP/TLS Traffic Analysis
 
-## Hiring Claim
-> After reviewing this artifact, a hiring manager has evidence that I can trace an HTTPS transaction from the TCP handshake through TLS 1.3 negotiation, certificate validation, encrypted HTTP, and teardown, and tell a server-side TLS rejection apart from a client-side certificate rejection.
+## At a Glance
+- **What I did:** Traced an HTTPS request from the TCP handshake through TLS 1.3 negotiation, certificate validation, encrypted HTTP, and teardown, then made it fail two different ways.
+- **What it shows:** What is still visible in encrypted traffic (SNI, ALPN, the certificate) and what isn't.
+- **What I found:** A server-side SNI rejection and a client-side certificate-name rejection fail differently, and both fail above the TCP layer.
+- **Why it matters for detection and response:** Most traffic a SOC sees is encrypted. Connection metadata like SNI and certificates is often all an analyst gets to work with.
 
 ## Skills Demonstrated
 - HTTPS/TLS traffic analysis

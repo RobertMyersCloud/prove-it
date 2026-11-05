@@ -1,26 +1,21 @@
 # Prove-It
 
-This repository is my hands-on body of proof for **Network & Systems Infrastructure**.
+This repository is the network foundation for my work in **security operations and incident response**.
 
-The goal is simple: demonstrate that I can understand, build, troubleshoot, secure, validate, and recover networked systems through work I actually performed and evidence I can explain in an interview.
+You can't spot abnormal traffic until you know what normal looks like. Each project here builds part of a real network on my own lab range, tests it, and reads the result at the packet level, so that later detection and investigation work starts from a baseline I've actually proven.
 
-## Current Technical Spine
+## What This Covers
 
-**Network & Systems Infrastructure**
-
-Primary focus:
-
-- Ethernet, ARP, TCP/IP, routing, and switching
+- Ethernet, ARP, TCP/UDP, DNS, and HTTP/TLS at the packet level
+- Routing, path selection, NAT, and carrier-grade NAT
 - VLANs, 802.1Q, inter-VLAN routing, and segmentation
-- DNS, DHCP, NAT, VPN, and other core network services
-- Linux and Windows systems administration
-- Proxmox and Hyper-V virtualization
-- Packet capture and protocol analysis
-- Firewall and access-control behavior
-- Monitoring, logging, backup, and recovery
-- Structured troubleshooting and root-cause analysis
+- Router ACLs and host firewall policy, with positive and negative tests
+- Passive capture through a switch mirror port
+- Tying observed traffic back to the process that sent it
+- Linux administration, plus Proxmox and Hyper-V virtualization
+- Structured troubleshooting, including re-testing my own builds
 
-Security is integrated into the infrastructure work through segmentation, least privilege, traffic analysis, logging, hardening, and recovery validation.
+Each project starts with an **At a Glance** summary: what I did, what it shows, what I found, and why it matters for detection and response. The full writeup and evidence follow.
 
 ## Proof Method
 
@@ -134,6 +129,6 @@ Useful concepts are learned, reproduced independently in my own environment, val
 
 ## End State
 
-I'm not trying to collect a pile of disconnected labs. Each project builds on the one before it, from fundamentals toward the kind of troubleshooting, monitoring, and recovery work an infrastructure job actually involves.
+I'm not trying to collect a pile of disconnected labs. Each project builds on the one before it, and the range built here is where my detection and investigation work runs.
 
 **Prove it.**

@@ -1,7 +1,10 @@
 # NET-003 — DNS Resolution and Troubleshooting
 
-## Hiring Claim
-> After reviewing this artifact, a hiring manager has evidence that I can trace DNS queries from a local stub to more than one upstream resolver on a dual-homed Linux host, read a DNS-over-TCP/53 exchange at the sequence/ACK level, and tell a negative DNS answer (NXDOMAIN) apart from a resolver that never answers.
+## At a Glance
+- **What I did:** Traced DNS queries from the local stub resolver to two upstream resolvers on a dual-homed Linux host.
+- **What it shows:** DNS over UDP and TCP port 53, and the difference between a negative answer (NXDOMAIN) and a resolver that never answers.
+- **What I found:** Route metrics didn't explain where queries went. `systemd-resolved` sent them over both links, and the packets showed it.
+- **Why it matters for detection and response:** DNS is one of the first logs an investigation checks. You need to know which path a query actually took before you trust what those logs say.
 
 ## Skills Demonstrated
 - DNS troubleshooting and packet analysis

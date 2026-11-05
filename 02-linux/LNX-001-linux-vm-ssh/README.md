@@ -1,9 +1,12 @@
 # LNX-001 — Linux VM Build and SSH Administration
 
-## Hiring Claim
-After reviewing this artifact, a hiring manager has evidence that I can build a Linux server VM in Hyper-V, put it on the network, and connect to and verify it over SSH, with proof from both the client and the server side.
+## At a Glance
+- **What I did:** Built an Ubuntu server VM in Hyper-V, put it on the network, and connected to it over SSH.
+- **What it shows:** A working Linux build and remote administration, with the SSH login confirmed from both the client and the server's own log.
+- **What I found:** The server logged the session from the expected host-side address, which matched what the client showed.
+- **Why it matters for detection and response:** Confirming an event from both ends, the client and the server's log, is how you verify a login during an investigation.
 
-## Employer Skills Demonstrated
+## Skills Demonstrated
 - Hyper-V Generation 2 VM build
 - Secure Boot template selection for Linux
 - Ubuntu Server installation

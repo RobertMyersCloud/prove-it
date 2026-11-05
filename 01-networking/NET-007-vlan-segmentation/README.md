@@ -2,8 +2,11 @@
 
 > **Correction — October 5, 2026.** The isolation in this project covers one direction of one path: VLAN 30 to the lab LAN (`10.10.20.0/24`). When I re-tested in NET-008, VLAN 30 could still reach the household network and the internet, because I never added it to `GRP_LabNet`, the group the existing egress rules use ([NET-008 Finding 3](../NET-008-protected-systems-enclave/README.md#finding-3--vlan30-had-household-and-internet-egress-through-the-er605)). The VLAN 30 DHCP pool I set up here also handed out `10.10.31.1` as Primary DNS, a typo ([NET-008 Finding 1](../NET-008-protected-systems-enclave/README.md#finding-1--vlan30-dhcp-handed-out-a-nonexistent-dns-server)). Both are fixed in NET-008.
 
-## Hiring Claim
-After reviewing this artifact, a hiring manager has evidence that I can design and implement VLAN segmentation, configure tagged and untagged switch ports, verify DHCP and Layer-3 inter-VLAN routing, distinguish Layer-2 neighbor behavior from routed communication, and block VLAN 30 from reaching the lab LAN with a LAN-to-LAN ACL.
+## At a Glance
+- **What I did:** Created VLAN 30 with tagged and untagged switch ports, routed between VLANs, blocked VLAN 30 from the lab LAN with an ACL, and captured the 802.1Q tag on the trunk.
+- **What it shows:** The difference between a network that can route a packet and a policy that should allow it.
+- **What I found:** The isolation only covered one direction. VLAN 30 could still reach the household network and the internet, and its DHCP pool handed out a mistyped DNS server. Both were found and fixed in NET-008.
+- **Why it matters for detection and response:** VLANs don't isolate anything once routing exists between them; the policy does. That's the question to ask about any network described as segmented.
 
 ## Skills Demonstrated
 - 802.1Q VLAN configuration

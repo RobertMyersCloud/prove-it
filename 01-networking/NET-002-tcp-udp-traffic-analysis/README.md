@@ -1,9 +1,12 @@
 # NET-002 — TCP vs UDP Traffic Analysis
 
-## Hiring Claim
-After reviewing this artifact, a hiring manager has evidence that I can establish and analyze TCP and UDP traffic, interpret socket state, explain TCP sequence and acknowledgment behavior, identify connection establishment and teardown, and show with packet captures how UDP behaves when sent to an open port versus a closed port, including the ICMP Port Unreachable a closed port returns.
+## At a Glance
+- **What I did:** Ran TCP and UDP sessions between lab hosts and compared socket state on the hosts with the packets on the wire.
+- **What it shows:** TCP handshake, sequence and acknowledgment numbers, teardown and `TIME-WAIT`; UDP to an open port versus a closed port, including the ICMP Port Unreachable.
+- **What I found:** An October 5 re-test added `LISTEN` and `ESTAB` under one process, data in both directions, and a server-initiated close.
+- **Why it matters for detection and response:** Scans, failed connections, and data transfers all show up as connection state. Reading that state is how you tell a port scan from normal traffic.
 
-## Employer Skills Demonstrated
+## Skills Demonstrated
 - TCP/IP traffic analysis
 - TCP three-way handshake analysis
 - TCP sequence and acknowledgment reasoning

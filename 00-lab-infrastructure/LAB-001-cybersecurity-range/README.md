@@ -2,8 +2,11 @@
 
 > **Baseline as of September 26, 2026.** This documents the lab before VLANs. ENVY later moved to VLAN 30 (NET-007), and in NET-008 it became a single-homed enclave host while Victus became the management workstation. The current layout is in the [repository README](../../README.md#lab-topology).
 
-## Hiring Claim
-After reviewing this artifact, a hiring manager has evidence that I can document a network's starting state, define a trust boundary between two networks, and validate with tests that the boundary enforces what the design says it should.
+## At a Glance
+- **What I did:** Built an isolated lab range behind a TP-Link ER605 router, documented its starting state, and tested the boundary between the lab and my household network.
+- **What it shows:** I can define a trust boundary between two networks and test that it enforces what the design says, instead of assuming it does.
+- **What I found:** The lab-to-household deny held in an endpoint test with a household-side control (October 7 re-test). I didn't capture ACL logs, so which rule matched isn't shown.
+- **Why it matters for detection and response:** Every later project, including attack and detection work, runs on this range. A boundary that's been tested is what keeps attack traffic contained to the lab.
 
 ## Objective
 
@@ -13,7 +16,7 @@ The lab is designed to allow systems inside the range to communicate with each o
 
 That gives me a controlled place to break things and troubleshoot without touching the household network.
 
-## Employer Skills Demonstrated
+## Skills Demonstrated
 
 - TCP/IP and IPv4 subnetting
 - Layer 2 switching

@@ -1,9 +1,12 @@
 # NET-008 — Protected Systems Enclave
 
-## Hiring Claim
-After reviewing this artifact, a hiring manager has evidence that I can place a host behind an explicit trust boundary, restrict management access to a single authorized source with layered network and host controls, and prove both the allowed and the denied paths with positive and negative tests.
+## At a Glance
+- **What I did:** Put a Fedora host in a protected enclave and allowed SSH only from one management workstation, using a router ACL and the host firewall. I tested the allowed and denied paths from both sides.
+- **What it shows:** Layered access control, plus re-testing my own build until it held.
+- **What I found:** A re-test found five gaps in my own design: a DNS typo, a Wi-Fi interface that bypassed the router, open internet egress, open high ports with a file-sharing service listening, and an SSH session from an unauthorized host that had survived since before the rule. A later passive capture caught the host retrying HTTPS in the background. I tied the packets to the process and shut it off.
+- **Why it matters for detection and response:** Three of the five problems were already in screenshots I had taken and missed. Reading your own evidence closely and tying a packet to a process are the core of triage.
 
-## Employer Skills Demonstrated
+## Skills Demonstrated
 - VLAN segmentation and inter-VLAN routing
 - Router ACL policy (ER605)
 - Host firewall policy (firewalld rich rules)
@@ -697,4 +700,4 @@ The screenshots used in this project were reviewed before publication. Public ev
 ## Status
 **PROVEN**
 
-Allowed and denied management paths were tested from both sides of the boundary, and both the route and the firewall policy were made persistent. The October 5 re-test found and fixed five problems; see [GAPS.md](../../_control/GAPS.md). A few October 2 steps were not captured and are marked "Not captured" above. On October 7, a passive capture found ENVY retrying HTTPS and HTTP egress in the background; both sources were named, turned off, and confirmed quiet on the wire.
+Allowed and denied management paths were tested from both sides of the boundary, and both the route and the firewall policy were made persistent. The October 5 re-test found and fixed five problems; see [Re-Test and Fixes](#re-test-and-fixes--october-5-2026). A few October 2 steps were not captured and are marked "Not captured" above. On October 7, a passive capture found ENVY retrying HTTPS and HTTP egress in the background; both sources were named, turned off, and confirmed quiet on the wire.

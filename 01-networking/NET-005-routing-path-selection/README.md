@@ -1,8 +1,10 @@
 # NET-005 — Routing and Path Selection
 
-## Hiring Claim
-
-> After reviewing this artifact, a hiring manager has evidence that I can read a Linux routing table on a dual-homed host, apply longest-prefix match and route metrics to explain which path the kernel picks, override that choice with a static host route, confirm with `tcpdump` which interface the traffic actually left on, and remove the change afterward.
+## At a Glance
+- **What I did:** Worked through route selection on a dual-homed Linux host, overrode it with a `/32` host route, and used `tcpdump` to confirm which interface the traffic actually left on.
+- **What it shows:** Longest-prefix match, metric tie-breaking, and the difference between the kernel's route decision and what actually happens on the wire.
+- **What I found:** My Proxmox host was forwarding IPv4 and IPv6 on its bridge even though `net.ipv4.ip_forward` was 0. ifupdown2 turns forwarding on for bridges that have an IP address. I found it, turned it off, and confirmed the fix held across a reboot.
+- **Why it matters for detection and response:** A host that forwards traffic when it shouldn't is a path around segmentation. I only found this one because I captured packets instead of trusting the config.
 
 ## Skills Demonstrated
 

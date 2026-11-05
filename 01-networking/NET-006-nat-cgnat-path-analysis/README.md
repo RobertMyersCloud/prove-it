@@ -1,10 +1,10 @@
 # NET-006 — NAT and CGNAT Path Analysis
 
-## Hiring Claim
-
-> After reviewing this artifact, a hiring manager has evidence that I can trace addressing boundaries through a nested lab/household network and identify CGNAT, by recognizing an RFC 6598 `100.64.0.0/10` WAN address and confirming that the Internet-visible address is different.
-
-The title says NAT, but I didn't capture any translation evidence (no NAT/session table, no before-and-after packet capture). The NAT boundaries here are inferred from addressing and routing, not observed.
+## At a Glance
+- **What I did:** Traced addressing from my lab, through my household router, to the ISP.
+- **What it shows:** That the household connection sits behind carrier-grade NAT, backed by three sources: traceroute, the router's status page, and an outside lookup of the public address.
+- **What I found:** The address translation itself was never observed. It happens on carrier equipment I can't see into, so the NAT boundaries are inferred from addressing and routing, and the writeup says so.
+- **Why it matters for detection and response:** Investigations depend on knowing which address the outside world actually saw. Behind CGNAT, a public IP doesn't point to a single household.
 
 ## Skills Demonstrated
 

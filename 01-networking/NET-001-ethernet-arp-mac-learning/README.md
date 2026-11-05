@@ -1,9 +1,12 @@
 # NET-001 — Ethernet, ARP & MAC Learning with Port Mirroring
 
-## Hiring Claim
-After reviewing this artifact, a hiring manager has evidence that I can explain, observe, and validate same-subnet Ethernet communication using ARP, ICMP, packet analysis, and physical switch port mirroring.
+## At a Glance
+- **What I did:** Generated ARP and ICMP between two lab hosts and watched the exchange from a passive capture box on a switch mirror port.
+- **What it shows:** A same-subnet exchange end to end: ARP broadcast, unicast reply, the neighbor cache going to `REACHABLE`, then the ping itself.
+- **What I found:** The mirror port carried background traffic too, so I had to correlate timing and addresses to pick out the test exchange.
+- **Why it matters for detection and response:** ARP is where spoofing and man-in-the-middle attacks happen, and a clean exchange is the baseline for spotting a bad one. A mirror port is also how a network sensor sees traffic.
 
-## Employer Skills Demonstrated
+## Skills Demonstrated
 - Ethernet and Layer 2 communication
 - IPv4 subnet reasoning
 - ARP and MAC-address resolution
