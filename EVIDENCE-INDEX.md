@@ -16,6 +16,7 @@ Every artifact below is a documented run in my own lab, with machine evidence an
 | NET-007 | [VLAN Segmentation and Policy Enforcement](01-networking/NET-007-vlan-segmentation/README.md) | 802.1Q, tagged/untagged ports, PVID, DHCP, inter-VLAN routing, ACLs, trunk capture, switch port hardening |
 | NET-008 | [Protected Systems Enclave](01-networking/NET-008-protected-systems-enclave/README.md) | Router ACL + firewalld rich rules, least-privilege SSH, persistent routes, positive/negative testing, traffic-to-process attribution |
 | LNX-001 | [Linux VM Build and SSH Administration](02-linux/LNX-001-linux-vm-ssh/README.md) | Linux, Hyper-V, virtualization, SSH, remote administration |
+| FOR-001 | [Pre-Acquisition Target Survey](03-forensics/FOR-001-pre-acquisition-target-survey/README.md) | Disk and volume identification, BitLocker review, live-system baseline, acquisition hazards, redaction (acquisition not completed) |
 
 ## Skill-to-Proof Map
 
@@ -45,7 +46,7 @@ Every artifact below is a documented run in my own lab, with machine evidence an
 | Proxmox virtual networking | LAB-001 |
 | Hyper-V virtualization | LNX-001 |
 | Linux remote administration | LNX-001 |
-| Evidence sanitization | LAB-001, LNX-001, NET-001 through NET-008 |
+| Evidence sanitization | LAB-001, LNX-001, NET-001 through NET-008, FOR-001 |
 | Structured troubleshooting | NET-003 through NET-008 |
 
 A companion investigation, [packet-analysis-lab](https://github.com/RobertMyersCloud/packet-analysis-lab), applies the protocol work to troubleshooting and security analysis.

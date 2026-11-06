@@ -1,0 +1,360 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260831153600
+Username: [lab-target]\[user]
+RunAs User: [lab-target]\[user]
+Configuration Name: 
+Machine: [lab-target] (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 6556
+PSVersion: 5.1.26100.7019
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7019
+BuildVersion: 10.0.26100.7019
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\[user]\Desktop\junk-laptop-baseline.txt
+PS C:\Users\[user]> # Identity of the system
+PS C:\Users\[user]> Get-ComputerInfo | Select CsName, CsManufacturer, CsModel, OsName, OsVersion, OsBuildNumber, BiosSeralNumber, OsInstallDate
+
+
+CsName          : [lab-target]
+CsManufacturer  : HP
+CsModel         : HP ENVY x360 Convertible 15m-dr1xxx
+OsName          : Microsoft Windows 11 Home
+OsVersion       : 10.0.26200
+OsBuildNumber   : 26200
+BiosSeralNumber : [REDACTED — recorded privately]
+OsInstallDate   : 9/25/2025 6:07:05 PM
+
+
+
+PS C:\Users\[user]> # Who exists on this machine
+PS C:\Users\[user]> Get-LocalUser | Select Name, Enabled, LastLogon
+
+Name               Enabled LastLogon
+----               ------- ---------
+Administrator        False
+DefaultAccount       False
+Guest                False
+[user]               True
+WDAGUtilityAccount   False
+
+
+PS C:\Users\[user]> Get-LocalGroupMember Administrators
+
+ObjectClass Name                   PrincipalSource
+----------- ----                   ---------------
+User        [lab-target]\Administrator Local
+User        [lab-target]\[user]         MicrosoftAccount
+
+
+PS C:\Users\[user]> # What's installed
+PS C:\Users\[user]> Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Select DisplayName, DisplayVersion, InstallDate | Where DisplayName | Sort DisplayName
+
+DisplayName                                                    DisplayVersion   InstallDate
+-----------                                                    --------------   -----------
+7-Zip 25.01 (x64)                                              25.01
+Adobe Acrobat (64-bit)                                         25.001.20844     20251107
+Docker Desktop                                                 4.47.0
+EzTiltPen                                                      1.0.0.27         20191210
+Git                                                            2.51.0           20250926
+Google Chrome                                                  151.0.7922.175   20250926
+HP One Agent                                                   1.2.007.1708     20251031
+HP One Agent                                                   1.2.7.1708       20251031
+Intel(R) Chipset Device Software                               10.1.18019.8144  20191210
+Intel® Optane™ Pinning Explorer Extensions                     17.5.0.1017      20191210
+Microsoft .NET Host - 8.0.22 (x64)                             64.88.42551      20251112
+Microsoft .NET Host FX Resolver - 8.0.22 (x64)                 64.88.42551      20251112
+Microsoft .NET Runtime - 8.0.22 (x64)                          64.88.42551      20251112
+Microsoft 365 - en-us                                          16.0.19328.20178
+Microsoft 365 Apps for enterprise - en-us                      16.0.19328.20178
+Microsoft GameInput                                            10.1.26100.6879  20251107
+Microsoft OneDrive                                             26.150.0804.0011
+Microsoft Visual C++ 2022 X64 Additional Runtime - 14.42.34433 14.42.34433      20250925
+Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.42.34433    14.42.34433      20250925
+Microsoft Windows Desktop Runtime - 8.0.22 (x64)               64.88.42561      20251112
+Mozilla Firefox (x64 en-US)                                    144.0.2
+Mozilla Maintenance Service                                    143.0.1
+Office 16 Click-to-Run Extensibility Component                 16.0.19328.20106 20251107
+Oracle VirtualBox 7.2.2                                        7.2.2            20250926
+Patch My PC Home Updater                                       5.4.0.0          20251112
+PowerShell 7-x64                                               7.5.4.0          20251031
+Python 3.12.10 Add to Path (64-bit)                            3.12.10150.0     20250926
+Python 3.12.10 Core Interpreter (64-bit)                       3.12.10150.0     20250926
+Python 3.12.10 Development Libraries (64-bit)                  3.12.10150.0     20250926
+Python 3.12.10 Documentation (64-bit)                          3.12.10150.0     20250926
+Python 3.12.10 Executables (64-bit)                            3.12.10150.0     20250926
+Python 3.12.10 pip Bootstrap (64-bit)                          3.12.10150.0     20250926
+Python 3.12.10 Standard Library (64-bit)                       3.12.10150.0     20250926
+Python 3.12.10 Tcl/Tk Support (64-bit)                         3.12.10150.0     20250926
+Python 3.12.10 Test Suite (64-bit)                             3.12.10150.0     20250926
+
+
+PS C:\Users\[user]> # What's running at idle
+PS C:\Users\[user]> Get-Process | Sort CPU -Descending | Select Name, Id, CPU -First 30
+
+Name                                Id        CPU
+----                                --        ---
+System                               4  275.34375
+msedge                            6684  171.21875
+MsMpEng                          13248 162.734375
+msedge                            4584 142.921875
+dwm                               1600  118.28125
+explorer                          9568        117
+msedge                            9360  96.953125
+svchost                           7628  67.359375
+svchost                          15128  61.140625
+svchost                           2716  54.890625
+msedge                            4684   52.65625
+svchost                           1428  44.171875
+msedge                           12980  41.671875
+WmiPrvSE                          4628  37.359375
+svchost                           2984  31.515625
+WUDFHost                          2376  27.390625
+svchost                           2204   26.53125
+Memory Compression                3612  25.453125
+sihost                            8296  23.140625
+svchost                           3404  21.578125
+svchost                           5624  20.890625
+HPAudioSwitch                    13036  19.796875
+msedge                            6636  19.421875
+svchost                           4404     19.375
+svchost                           1264   19.15625
+StartMenuExperienceHost           4600     16.875
+lsass                             1132   16.40625
+TouchpointAnalyticsClientService  3900  15.921875
+services                          1084   15.90625
+Copilot                          14648  15.390625
+
+
+PS C:\Users\[user]> Get-Service | Where Status -eq Running | Select Name, DisplayName
+
+Name                                                   DisplayName
+----                                                   -----------
+AdobeARMservice                                        Adobe Acrobat Update Service
+AESMService                                            Intel® SGX AESM
+Appinfo                                                Application Information
+AppXSvc                                                AppX Deployment Service (AppXSVC)
+AudioEndpointBuilder                                   Windows Audio Endpoint Builder
+Audiosrv                                               Windows Audio
+BDESVC                                                 BitLocker Drive Encryption Service
+BFE                                                    Base Filtering Engine
+BluetoothUserService_14c38a                            Bluetooth User Support Service_14c38a
+BrokerInfrastructure                                   Background Tasks Infrastructure Service
+BTAGService                                            Bluetooth Audio Gateway Service
+BthAvctpSvc                                            AVCTP service
+bthserv                                                Bluetooth Support Service
+camsvc                                                 Capability Access Manager Service
+cbdhsvc_14c38a                                         Clipboard User Service_14c38a
+CDPSvc                                                 Connected Devices Platform Service
+CDPUserSvc_14c38a                                      Connected Devices Platform User Serv...
+ClickToRunSvc                                          Microsoft Office Click-to-Run Service
+CoreMessagingRegistrar                                 CoreMessaging
+cphs                                                   Intel(R) Content Protection HECI Ser...
+cplspcon                                               Intel(R) Content Protection HDCP Ser...
+CryptSvc                                               Cryptographic Services
+DcomLaunch                                             DCOM Server Process Launcher
+DeviceAssociationService                               Device Association Service
+DeviceInstall                                          Device Install Service
+DevicesFlowUserSvc_14c38a                              DevicesFlow_14c38a
+Dhcp                                                   DHCP Client
+DiagTrack                                              Connected User Experiences and Telem...
+DispBrokerDesktopSvc                                   Display Policy Service
+DisplayEnhancementService                              Display Enhancement Service
+Dnscache                                               DNS Client
+DoSvc                                                  Delivery Optimization
+DPS                                                    Diagnostic Policy Service
+DusmSvc                                                Data Usage
+esifsvc                                                Intel(R) Dynamic Tuning service
+EventLog                                               Windows Event Log
+EventSystem                                            COM+ Event System
+FontCache                                              Windows Font Cache Service
+GamingServices                                         Gaming Services
+GamingServicesNet                                      Gaming Services
+gpsvc                                                  Group Policy Client
+hidserv                                                Human Interface Device Service
+hns                                                    Host Network Service
+HP Comm Recover                                        HP Comm Recovery
+HPAppHelperCap                                         HP App Helper HSA Service
+HPDiagsCap                                             HP Diagnostics HSA Service
+HPNetworkCap                                           HP Network HSA Service
+hp-one-agent-service                                   HP One Agent Service
+HPSysInfoCap                                           HP System Info HSA Service
+HpTouchpointAnalyticsService                           HP Insights Analytics
+HvHost                                                 HV Host Service
+ibtsiva                                                Intel Bluetooth Service
+igccservice                                            Intel(R) Graphics Command Center Ser...
+igfxCUIService2.0.0.0                                  Intel(R) HD Graphics Control Panel S...
+IKEEXT                                                 IKE and AuthIP IPsec Keying Modules
+InstallService                                         Microsoft Store Install Service
+Intel(R) Capability Licensing Service TCP IP Interface Intel(R) Capability Licensing Servic...
+IntelAudioService                                      Intel(R) Audio Service
+InventorySvc                                           Inventory and Compatibility Appraisa...
+iphlpsvc                                               IP Helper
+jhi_service                                            Intel(R) Dynamic Application Loader ...
+KeyIso                                                 CNG Key Isolation
+LanmanServer                                           Server
+LanmanWorkstation                                      Workstation
+lfsvc                                                  Geolocation Service
+LicenseManager                                         Windows License Manager Service
+lmhosts                                                TCP/IP NetBIOS Helper
+LMS                                                    Intel(R) Management and Security App...
+LSM                                                    Local Session Manager
+MDCoreSvc                                              Microsoft Defender Core Service
+mpssvc                                                 Windows Defender Firewall
+NcbService                                             Network Connection Broker
+netprofm                                               Network List Service
+NetSetupSvc                                            Network Setup Service
+NgcCtnrSvc                                             Microsoft Passport Container
+NgcSvc                                                 Microsoft Passport
+NPSMSvc_14c38a                                         Now Playing Session Manager Service_...
+nsi                                                    Network Store Interface Service
+nvagent                                                Network Virtualization Service
+OneSyncSvc_14c38a                                      Sync Host_14c38a
+PcaSvc                                                 Program Compatibility Assistant Service
+PenService_14c38a                                      PenService_14c38a
+PimIndexMaintenanceSvc_14c38a                          Contact Data_14c38a
+PlugPlay                                               Plug and Play
+Power                                                  Power
+ProfSvc                                                User Profile Service
+RasMan                                                 Remote Access Connection Manager
+RmSvc                                                  Radio Management Service
+RpcEptMapper                                           RPC Endpoint Mapper
+RpcSs                                                  Remote Procedure Call (RPC)
+RstMwService                                           Intel(R) Storage Middleware Service
+RtkAudioUniversalService                               Realtek Audio Universal Service
+SamSs                                                  Security Accounts Manager
+Schedule                                               Task Scheduler
+SECOMNService                                          Sound Research SECOMN Service
+SecurityHealthService                                  Windows Security Service
+SENS                                                   System Event Notification Service
+SensorService                                          Sensor Service
+SensRst                                                Sensor reset service
+SensrSvc                                               Sensor Monitoring Service
+SharedAccess                                           Internet Connection Sharing (ICS)
+ShellHWDetection                                       Shell Hardware Detection
+smphost                                                Microsoft Storage Spaces SMP
+Spooler                                                Print Spooler
+SSDPSRV                                                SSDP Discovery
+SstpSvc                                                Secure Socket Tunneling Protocol Ser...
+StateRepository                                        State Repository Service
+StorSvc                                                Storage Service
+SynTPEnhService                                        SynTPEnhService
+SysMain                                                SysMain
+SystemEventsBroker                                     System Events Broker
+TextInputManagementService                             Text Input Management Service
+Themes                                                 Themes
+TimeBrokerSvc                                          Time Broker
+TokenBroker                                            Web Account Manager
+TrkWks                                                 Distributed Link Tracking Client
+TrustedInstaller                                       Windows Modules Installer
+UdkUserSvc_14c38a                                      Udk User Service_14c38a
+UnistoreSvc_14c38a                                     User Data Storage_14c38a
+UserDataSvc_14c38a                                     User Data Access_14c38a
+UserManager                                            User Manager
+UsoSvc                                                 Update Orchestrator Service
+VaultSvc                                               Credential Manager
+W32Time                                                Windows Time
+Wcmsvc                                                 Windows Connection Manager
+WdiServiceHost                                         Diagnostic Service Host
+WdiSystemHost                                          Diagnostic System Host
+WdNisSvc                                               Microsoft Defender Antivirus Network...
+webthreatdefusersvc_14c38a                             Web Threat Defense User Service_14c38a
+whesvc                                                 Windows Health and Optimized Experie...
+WinDefend                                              Microsoft Defender Antivirus Service
+WinHttpAutoProxySvc                                    WinHTTP Web Proxy Auto-Discovery Ser...
+Winmgmt                                                Windows Management Instrumentation
+WlanSvc                                                WLAN AutoConfig
+wlidsvc                                                Microsoft Account Sign-in Assistant
+WpnService                                             Windows Push Notifications System Se...
+WpnUserService_14c38a                                  Windows Push Notifications User Serv...
+WSAIFabricSvc                                          WSAIFabricSvc
+wscsvc                                                 Security Center
+WSearch                                                Windows Search
+wuauserv                                               Windows Update
+
+
+PS C:\Users\[user]> # Disk layout
+PS C:\Users\[user]> Get-Partition | Select DiskNumber, PartitionNumber, DriveLetter, Size, Type
+
+
+DiskNumber      : 0
+PartitionNumber : 1
+DriveLetter     :  
+Size            : 272629760
+Type            : System
+
+DiskNumber      : 0
+PartitionNumber : 2
+DriveLetter     :  
+Size            : 16777216
+Type            : Reserved
+
+DiskNumber      : 0
+PartitionNumber : 3
+DriveLetter     : C
+Size            : 254578770944
+Type            : Basic
+
+DiskNumber      : 0
+PartitionNumber : 4
+DriveLetter     :  
+Size            : 1178599424
+Type            : Recovery
+
+
+
+PS C:\Users\[user]> Get-Volume | Select DriveLetter, FileSystemLabel, FileSystem, SizeRemaining, Size
+
+
+DriveLetter     :
+FileSystemLabel : SYSTEM
+FileSystem      : FAT32
+SizeRemaining   : 173543424
+Size            : 268435456
+
+DriveLetter     : C
+FileSystemLabel : Windows
+FileSystem      : NTFS
+SizeRemaining   : 166804942848
+Size            : 254578769920
+
+DriveLetter     :
+FileSystemLabel :
+FileSystem      : NTFS
+SizeRemaining   : 149225472
+Size            : 1178595328
+
+
+
+PS C:\Users\[user]> # Network config
+PS C:\Users\[user]> Get-NetAdapter | Select Name, InterfaceDescription, Status, MacAddress
+
+Name                         InterfaceDescription                     Status       MacAddress
+----                         --------------------                     ------       ----------
+Bluetooth Network Connection Bluetooth Device (Personal Area Network) Disconnected [REDACTED]
+Wi-Fi                        Intel(R) Wi-Fi 6 AX201 160MHz            Up           [REDACTED]
+Ethernet 2                   VirtualBox Host-Only Ethernet Adapter    Up           [REDACTED]
+
+
+PS C:\Users\[user]> Get-NetIPAddress | Where AddressFamily -eq IPv4 | Select InterfaceAlias, IPAddress
+
+InterfaceAlias               IPAddress
+--------------               ---------
+Ethernet 2                   [REDACTED — home LAN]
+Local Area Connection* 2     169.254.169.28
+Bluetooth Network Connection 169.254.30.67
+Local Area Connection* 1     169.254.231.126
+Wi-Fi                        [REDACTED — home LAN]
+Loopback Pseudo-Interface 1  127.0.0.1
+
+
+PS C:\Users\[user]> Stop-Transcript
+**********************
+Windows PowerShell transcript end
+End time: 20260831153624
+**********************

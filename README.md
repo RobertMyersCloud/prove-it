@@ -87,6 +87,7 @@ Every artifact lives at `NN-area/ID-short-slug/`, numbered in catalog order:
 - `00-lab-infrastructure/` - lab architecture, boundaries, and baseline state
 - `01-networking/` - networking proof from Ethernet through segmentation and troubleshooting
 - `02-linux/` - Linux administration
+- `03-forensics/` - forensic preparation and acquisition
 
 New areas appear as their first artifact is published.
 
