@@ -1,0 +1,48 @@
+NET-008 follow-up, November 6, 2026: Victus management address
+Terminal output from Victus (PowerShell) and ENVY (bash over SSH).
+Hardware addresses (MAC, DHCPv6 DUID), link-local addresses, and the Windows hostname are left out.
+
+== §1 Victus lab adapter before the fix (ipconfig /all, Ethernet 2, excerpt) ==
+   Description . . . . . . . . . . . : Realtek Gaming GbE Family Controller
+   DHCP Enabled. . . . . . . . . . . : Yes
+   IPv4 Address. . . . . . . . . . . : 10.10.20.101(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Lease Obtained. . . . . . . . . . : Sunday, November 1, 2026 10:36:51 PM
+   Lease Expires . . . . . . . . . . : Friday, November 6, 2026 8:19:02 AM
+   Default Gateway . . . . . . . . . : 10.10.20.1
+   DHCP Server . . . . . . . . . . . : 10.10.20.1
+
+== §2 ER605 (web UI, read off screen) ==
+Address Reservation: "victus-mgmt", Victus lab adapter MAC -> 10.10.20.102, Enabled
+DHCP Client List:    Victus lab adapter MAC (same MAC as the reservation) -> 10.10.20.101
+
+== §3 ipconfig /release "Ethernet 2" (Ethernet 2 excerpt) ==
+Ethernet adapter Ethernet 2:
+   Connection-specific DNS Suffix  . :
+   Default Gateway . . . . . . . . . :
+
+== §4 ipconfig /renew "Ethernet 2" (Ethernet 2 excerpt) ==
+Ethernet adapter Ethernet 2:
+   Connection-specific DNS Suffix  . : lan
+   IPv4 Address. . . . . . . . . . . : 10.10.20.102
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 10.10.20.1
+
+== §5 ssh robert-myers@10.10.30.10 from Victus (fingerprint line shortened) ==
+ED25519 key fingerprint is SHA256:mIUpyvg...
+This host key is known by the following other names/addresses:
+    C:\Users\...\.ssh/known_hosts:26: 10.10.30.100
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '10.10.30.10' (ED25519) to the list of known hosts.
+Last login: Wed Oct  7 18:47:52 2026 from 10.10.20.102
+robert-myers@fedora:~$ echo $SSH_CONNECTION
+10.10.20.102 49974 10.10.30.10 22
+
+== §6 sudo firewall-cmd --list-all on ENVY (excerpt; unchanged from the October 7 state) ==
+FedoraWorkstation (default, active)
+  target: default
+  interfaces: enp0s20f0u3u3c2
+  services: dhcpv6-client
+  ports:
+  rich rules:
+        rule family="ipv4" source address="10.10.20.102/32" port port="22" protocol="tcp" accept

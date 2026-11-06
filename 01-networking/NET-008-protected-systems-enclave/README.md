@@ -18,7 +18,7 @@
 
 ## Summary — Current State
 
-ENVY (Fedora, `10.10.30.100`) is the enclave host on VLAN30. Victus (Windows 11, `10.10.20.102`) is the only host allowed to manage it. This is the state after the October 5, 2026 re-test and patch window:
+ENVY (Fedora) is the enclave host on VLAN30, at `10.10.30.100` during this project and reserved at `10.10.30.10` since November 1, 2026. Victus (Windows 11, `10.10.20.102`, reserved) is the only host allowed to manage it. This is the state after the October 5, 2026 re-test and patch window:
 
 - **ER605:** `DENY_VLAN30_TO_LAB` blocks VLAN30 → lab LAN. VLAN30 is in `GRP_LabNet`, so the existing `DENY_Lab_to_Household` and `DENY_Lab_to_Any` rules also block household and internet egress.
 - **DNS:** VLAN30 DHCP hands out the ER605 (`10.10.30.1`) as the resolver.
@@ -33,6 +33,10 @@ The October 5 re-test found five problems in the October 2 build:
 3. [Finding 3](#finding-3--vlan30-had-household-and-internet-egress-through-the-er605): VLAN30 had household and internet egress through the ER605.
 4. [Finding 4](#finding-4--the-ssh-lockdown-was-the-only-inbound-restriction): ports `1025-65535` were open, and Yoda reached `passimd` on 27500.
 5. [Finding 5](#finding-5--a-pre-rule-ssh-session-from-yoda-survived-about-two-and-a-half-days): an SSH session from Yoda, opened before the `/32` rule, was still active.
+
+A follow-up on November 6 found a sixth:
+
+6. [Finding 6](#finding-6--victus-held-an-address-the-ssh-rule-doesnt-allow): Victus was on `10.10.20.101`, outside the `/32` SSH rule, because its lease predated its DHCP reservation taking effect.
 
 [Patch Window](#patch-window--october-5-2026): I patched ENVY through a temporary ER605 allow rule, deleted the rule, rebooted, and re-checked the controls.
 
@@ -621,6 +625,30 @@ The NTP finding is not fixed here.
 - The 6-minute capture reported `10 packets received by filter` but printed 6. The other four matched the filter but weren't printed before `timeout` ended the capture.
 - The default route metric of 20100 noted under Patch Window came from the connectivity check marking the connection as limited. With the check disabled, I haven't re-checked the metric.
 
+## Management Address Drift — November 6, 2026
+
+In this section, "output §n" is a section of [`nov6-management-address-terminal-output.txt`](evidence/nov6-management-address-terminal-output.txt).
+
+### Finding 6 — Victus held an address the SSH rule doesn't allow
+
+- **Expected:** Victus manages ENVY from `10.10.20.102`, the only source ENVY's firewalld SSH rule accepts.
+- **Observed:** Victus's lab adapter was on `10.10.20.101` (output §1). Since November 1, ENVY also has a DHCP reservation at `10.10.30.10` instead of `10.10.30.100`.
+- **Investigated:** the ER605 already had an enabled reservation, `victus-mgmt`, mapping Victus's lab adapter to `10.10.20.102`, and its DHCP client list showed that same adapter holding `10.10.20.101` (output §2). The reservation and the adapter matched, so the reservation wasn't wrong; it just wasn't in effect.
+- **Root cause (most likely):** Victus kept renewing a lease it already held, and the ER605 only applied the reservation when Victus asked for a new address. The SSH rule is pinned to `10.10.20.102/32`, but nothing made sure Victus actually had that address, so the access control depended on a DHCP lease I wasn't checking.
+- **Change:** `ipconfig /release` and `ipconfig /renew` on the lab adapter. Victus came back on `10.10.20.102` (output §3, §4). No firewall change.
+- **Validation:** SSH from Victus to `10.10.30.10` succeeded. ENVY's own view of the session, `$SSH_CONNECTION`, shows `10.10.20.102 49974 10.10.30.10 22`, and the firewalld zone still has only the `/32` SSH rule (output §5, §6). SSH also matched ENVY's host key to the key already on file for `10.10.30.100`, so the new address is the same host. The last login before this one was my own session from `10.10.20.102` on October 7.
+
+### Lessons
+
+- **An address-based rule is only as fixed as the address.** If a rule trusts one IP, that IP has to be pinned, and I have to check that the client actually has it after the reservation is created.
+- **A DHCP reservation isn't in effect until the client takes a new lease.** Creating it in the router isn't the last step.
+
+### Evidence Limits
+
+- My first SSH attempt timed out, but it went to ENVY's old address (`10.10.30.100`), so it doesn't show the `10.10.20.101` source being refused. I didn't test SSH to `10.10.30.10` from `10.10.20.101` before renewing, so the denial itself isn't captured. The finding rests on the address mismatch and the firewall rule.
+- I don't know when the `victus-mgmt` reservation was created relative to the November 1 lease, so the root cause is the explanation that fits the records, not something I watched happen.
+- The ER605 pages were read off screen and aren't published, because they show MAC addresses.
+
 ## Evidence Index
 
 "Output §n" is a section of [`remediation-terminal-output.txt`](evidence/remediation-terminal-output.txt). Numbers 15, 16, 21, 23, 29 and 42 were not kept as screenshots.
@@ -692,6 +720,7 @@ The NTP finding is not fixed here.
 | 63 | `63-envy-gnome-software-masked-stopped.png` | Masked, stopped, pid 3390 killed with TERM |
 | 64 | `64-xps-tcpdump-envy-quiet-after-fix-photo.jpg` | 6-minute capture after the fixes: ARP, mDNS, NTP only (photo, MACs masked) |
 | — | `remediation-terminal-output.txt` | Output for 15, 16, 21, 23 and 42, plus the DHCP options for Finding 1 |
+| — | `nov6-management-address-terminal-output.txt` | Output for Finding 6 (November 6) |
 
 ## Public Evidence Notes
 
@@ -700,4 +729,4 @@ The screenshots used in this project were reviewed before publication. Public ev
 ## Status
 **PROVEN**
 
-Allowed and denied management paths were tested from both sides of the boundary, and both the route and the firewall policy were made persistent. The October 5 re-test found and fixed five problems; see [Re-Test and Fixes](#re-test-and-fixes--october-5-2026). A few October 2 steps were not captured and are marked "Not captured" above. On October 7, a passive capture found ENVY retrying HTTPS and HTTP egress in the background; both sources were named, turned off, and confirmed quiet on the wire.
+Allowed and denied management paths were tested from both sides of the boundary, and both the route and the firewall policy were made persistent. The October 5 re-test found and fixed five problems; see [Re-Test and Fixes](#re-test-and-fixes--october-5-2026). A few October 2 steps were not captured and are marked "Not captured" above. On October 7, a passive capture found ENVY retrying HTTPS and HTTP egress in the background; both sources were named, turned off, and confirmed quiet on the wire. On November 6, Victus was found off its authorized address; renewing its lease put it back on `10.10.20.102`, confirmed from both ends of an SSH session ([Finding 6](#finding-6--victus-held-an-address-the-ssh-rule-doesnt-allow)).
