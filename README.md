@@ -35,7 +35,7 @@ Each project is one documented run. When I retest or fix something later, I reco
 
 ## Lab Topology
 
-Current state as of October 7, 2026, after the LAB-001, NET-007 and NET-008 re-tests. Each artifact documents the state at the time it was built.
+State as of October 7, 2026, after the LAB-001, NET-007 and NET-008 re-tests. The range has changed since then and is being redesigned. Each artifact documents the state at the time it was built.
 
 ```mermaid
 flowchart TB
