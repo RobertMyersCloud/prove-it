@@ -1,6 +1,6 @@
 # FOR-001 — Pre-Acquisition Target Survey
 
-> **Moved from an earlier repository.** I did this survey on August 31, 2026, in a separate repo I've since merged into this one. The machine, the HP ENVY, was later wiped and rebuilt with Fedora and is now the enclave host in [NET-008](../../01-networking/NET-008-protected-systems-enclave/README.md).
+> **Moved from an earlier repository.** I did this survey on August 31, 2026, in a separate repo I've since merged into this one. The machine, the HP ENVY, was later wiped and rebuilt with Fedora and served as the enclave host in [NET-008](../../01-networking/NET-008-protected-systems-enclave/README.md). It has since been rebuilt again and is no longer part of the range.
 
 ## At a Glance
 - **What I did:** Surveyed a Windows 11 laptop I had set aside as a forensic target before imaging it: disk identity, encryption state, and a live-OS baseline, captured as PowerShell transcripts and redacted before publishing.
